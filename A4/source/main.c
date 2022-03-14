@@ -13,6 +13,7 @@
 #include <controller.h>
 #include <fcntl.h>
 #include <framebuffer.h>
+#include <gpio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,17 +22,17 @@
 #include <unistd.h>
 #include <wiringPi.h>
 
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 #define CELL_WIDTH 30
 #define CELL_HEIGHT 30
 
-unsigned int *gpio;
-
 FrameBufferInfo fbinfo;
 Pixel *pixel;
 
-enum GAME_OBJECT { BACKGROUND, PLAYER };
+unsigned int *gpio;
 
 struct State {
   int playerX;
@@ -39,8 +40,10 @@ struct State {
   // int gameMap[MAP_WIDTH][MAP_HEIGHT];
 } state;
 
+enum CELL_TYPE { BACKGROUND, PLAYER };
 int gameMap[MAP_WIDTH][MAP_HEIGHT];
 
+// Location of center of screen in pixels
 int centerX;
 int centerY;
 
@@ -55,10 +58,10 @@ void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 void drawCell(int cellX, int cellY, int color) {
   pixel->color = color;
 
-  for (int py = 0; py < CELL_HEIGHT; py++) {
-    for (int px = 0; px < CELL_WIDTH; px++) {
-      pixel->x = cellX + px;
-      pixel->y = cellY + py;
+  for (int y = 0; y < CELL_HEIGHT; y++) {
+    for (int x = 0; x < CELL_WIDTH; x++) {
+      pixel->x = cellX + x;
+      pixel->y = cellY + y;
 
       drawPixel(pixel);
     }
@@ -66,15 +69,18 @@ void drawCell(int cellX, int cellY, int color) {
 }
 
 void drawMap() {
-  for (int cellY = 0; cellY < CELL_HEIGHT * MAP_HEIGHT; cellY += CELL_HEIGHT) {
-    for (int cellX = 0; cellX < CELL_WIDTH * MAP_WIDTH; cellX += CELL_WIDTH) {
-      int color = 0xF800;
-      // temp
-      if (cellX / CELL_WIDTH == state.playerX &&
-          cellY / CELL_HEIGHT == state.playerY) {
-        color = 0x0000FF;
+  int cellX, cellY;
+
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    for (int x = 0; x < MAP_WIDTH; x++) {
+      cellX = x * CELL_HEIGHT + centerX;
+      cellY = y * CELL_HEIGHT + centerY;
+
+      if (x == state.playerX && y == state.playerY) {
+        drawCell(cellX, cellY, 0x0000FF);
+      } else {
+        drawCell(cellX, cellY, 0xF800);
       }
-      drawCell(cellX + centerX, cellY + centerY, color);
     }
   }
 }
@@ -90,23 +96,23 @@ void printMap() {
 }
 
 void initGame() {
-  state.playerX = 0;
-  state.playerY = 0;
-
-  centerX = (fbinfo.screenWidth - 1280) / 2;
-  centerY = (fbinfo.screenHeight - 720) / 2;
+  centerX = (fbinfo.screenWidth - SCREEN_WIDTH) / 2;
+  centerY = (fbinfo.screenHeight - SCREEN_HEIGHT) / 2;
   pixel = malloc(sizeof(Pixel));
 
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      gameMap[y][x] = 0;
+      gameMap[y][x] = BACKGROUND;
     }
   }
-  gameMap[state.playerY][state.playerX] = 1;
+
+  state.playerX = 0;
+  state.playerY = 0;
+  gameMap[state.playerY][state.playerX] = PLAYER;
 }
 
 void update() {
-  gameMap[state.playerY][state.playerX] = 0;
+  gameMap[state.playerY][state.playerX] = BACKGROUND;
 
   if (isTimedPress(JOY_PAD_UP)) {
     state.playerY--;
@@ -119,7 +125,7 @@ void update() {
   }
 
   // Update player location in map
-  gameMap[state.playerY][state.playerX] = 1;
+  gameMap[state.playerY][state.playerX] = PLAYER;
 }
 
 int main(int argc, char *argv[]) {
