@@ -16,8 +16,6 @@ typedef enum {
   RIGHT
 } Button;
 
-unsigned int* initGPIO();
-
 void initSNES();
 
 void readSNES();
