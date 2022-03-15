@@ -62,20 +62,20 @@ int isButtonPressed(int i) { return buttons[i] == PRESSED; }
 
 int isButtonReleased(int i) { return buttons[i] == RELEASED; }
 
-float secondsElapsed(time_t time) {
-  return (float)(clock() - time) / CLOCKS_PER_SEC;
+float secondsElapsed(time_t start) {
+  return (float)(clock() - start) / CLOCKS_PER_SEC;
 }
 
 float secondsSinceLastButtonPress() { return secondsElapsed(lastButtonPress); }
 
 int isTimedPress(int i) {
-  time_t now = clock();
   // Check if the button has been detected as pressed
   // Must be at least DELAY seconds between button presses
   int pressed = isButtonPressed(i) && oldButtons[i] == RELEASED &&
                 secondsElapsed(lastPress[i]) > DELAY;
 
   if (pressed) {
+    time_t now = clock();
     // Update the time of last press for button i
     lastPress[i] = now;
     lastButtonPress = now;
@@ -104,12 +104,12 @@ void initSNES() {
   OUT_GPIO(LAT);
   INP_GPIO(DAT);
 
-  time_t time = clock();
+  time_t now = clock();
 
   for (int i = 0; i < NUM_BUTTONS; i++) {
     oldButtons[i] = RELEASED;
     buttons[i] = RELEASED;
-    lastPress[i] = time;
+    lastPress[i] = now;
   }
 }
 
@@ -146,8 +146,9 @@ int readData() {
 void readSNES() {
   // Update button states
   for (int i = 0; i < NUM_BUTTONS; i++) {
+    // Save current states
     oldButtons[i] = buttons[i];
-    // Reset pressed flag
+    // Reset states
     buttons[i] = RELEASED;
   }
 
