@@ -1,5 +1,5 @@
 /*
- * CPSC 359 Assignment 4
+ * CPSC 359 Assignment 4: Mario Kart Game
  * Winter 2022
  *
  * Team members:
@@ -32,6 +32,12 @@
 FrameBufferInfo fbinfo;
 Pixel *pixel;
 
+enum color {
+  RED = 0xF800,
+  BLUE = 0x0000FF,
+  GREY = 0x9493
+};
+
 unsigned int *gpio;
 
 struct State {
@@ -40,7 +46,7 @@ struct State {
   // int gameMap[MAP_WIDTH][MAP_HEIGHT];
 } state;
 
-enum CELL_TYPE { BACKGROUND, PLAYER };
+enum cellType { BACKGROUND, PLAYER };
 int gameMap[MAP_WIDTH][MAP_HEIGHT];
 
 // Location of center of screen in pixels
@@ -77,9 +83,9 @@ void drawMap() {
       cellY = y * CELL_HEIGHT + centerY;
 
       if (x == state.playerX && y == state.playerY) {
-        drawCell(cellX, cellY, 0x0000FF);
+        drawCell(cellX, cellY, RED);
       } else {
-        drawCell(cellX, cellY, 0xF800);
+        drawCell(cellX, cellY, GREY);
       }
     }
   }
@@ -111,17 +117,23 @@ void initGame() {
   gameMap[state.playerY][state.playerX] = PLAYER;
 }
 
+int clamp(int val, int min, int max) {
+  if (val > max) return max;
+  if (val < min) return min;
+  return val;
+}
+
 void update() {
   gameMap[state.playerY][state.playerX] = BACKGROUND;
 
   if (isTimedPress(JOY_PAD_UP)) {
-    state.playerY--;
+    state.playerY = clamp(state.playerY - 1, 0, MAP_HEIGHT - 1);
   } else if (isTimedPress(JOY_PAD_DOWN)) {
-    state.playerY++;
+    state.playerY = clamp(state.playerY + 1, 0, MAP_HEIGHT - 1);
   } else if (isTimedPress(JOY_PAD_LEFT)) {
-    state.playerX--;
+    state.playerX = clamp(state.playerX - 1, 0, MAP_WIDTH - 1);
   } else if (isTimedPress(JOY_PAD_RIGHT)) {
-    state.playerX++;
+    state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
   }
 
   // Update player location in map

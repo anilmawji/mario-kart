@@ -1,6 +1,6 @@
 
 /*
- * CPSC 359 Assignment 3
+ * CPSC 359 Assignment 4: Controller Test
  * Winter 2022
  *
  * Team members:

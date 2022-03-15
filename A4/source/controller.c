@@ -1,5 +1,5 @@
 /*
- * CPSC 359 SNES Controller Driver
+ * CPSC 359 Assignment 4: SNES Controller Driver
  * Winter 2022
  *
  * Team members:
@@ -147,10 +147,7 @@ void readSNES() {
   // Update button states
   for (int i = 0; i < NUM_BUTTONS; i++) {
     oldButtons[i] = buttons[i];
-  }
-
-  // Reset button flags
-  for (int i = 0; i < NUM_BUTTONS; i++) {
+    // Reset pressed flag
     buttons[i] = RELEASED;
   }
 
