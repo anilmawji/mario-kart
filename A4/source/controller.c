@@ -49,7 +49,7 @@ const char* BUTTON_NAMES[NUM_REAL_BUTTONS] = {"B",
                                               "Left",
                                               "Right"};
 
-unsigned int* gpio;
+unsigned int* gpio = NULL;
 
 int buttons[NUM_BUTTONS];
 // Keeps track of previous button states
@@ -93,7 +93,8 @@ int isButtonHeld(int i) { return buttons[i] == PRESSED && forcePressDelay(i); }
 // Check whether a button has been pressed
 // Events used with this function are only triggered once
 int isButtonPressed(int i) {
-  return buttons[i] == PRESSED && oldButtons[i] == RELEASED && forcePressDelay(i);
+  return buttons[i] == PRESSED && oldButtons[i] == RELEASED &&
+         forcePressDelay(i);
 }
 
 int isButtonReleased(int i) { return buttons[i] == RELEASED; }
@@ -114,7 +115,13 @@ void OUT_GPIO(int p) {
 void initSNES() {
   gpio = getGPIOPtr();
 
-  if (!gpio) printf("GPIO must be initialized before accessing the controller! Aborting...\n");
+  // Sanity check
+  if (gpio == NULL) {
+    fprintf(stderr,
+            "Fatal error: GPIO must be initialized before accessing the controller! "
+            "Aborting...\n");
+    exit(1);
+  }
 
   OUT_GPIO(CLK);
   OUT_GPIO(LAT);

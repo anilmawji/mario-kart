@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 
     // Loop through each controller button
     for (int i = 0; i < NUM_REAL_BUTTONS; i++) {
-      if (isTimedPress(i)) {
+      if (isButtonPressed(i)) {
         printf("You have pressed: %s\n\n", getButtonName(i));
         waiting = FALSE;
         // Only print again after having pressed a button, ensuring that we
