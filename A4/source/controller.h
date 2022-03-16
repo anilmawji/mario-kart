@@ -29,3 +29,5 @@ int isButtonReleased(int i);
 int isTimedPress(int i);
 
 float secondsSinceLastButtonPress();
+
+void setDelay();

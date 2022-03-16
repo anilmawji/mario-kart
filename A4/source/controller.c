@@ -34,7 +34,6 @@
 // Button macros
 #define PRESSED 0
 #define RELEASED 1
-#define DELAY 0.2  // Minimum delay between button presses
 
 const char* BUTTON_NAMES[NUM_REAL_BUTTONS] = {"B",
                                               "Y",
@@ -50,6 +49,8 @@ const char* BUTTON_NAMES[NUM_REAL_BUTTONS] = {"B",
                                               "Right"};
 
 unsigned int* gpio = NULL;
+
+float delay = 0.2;
 
 int buttons[NUM_BUTTONS];
 // Keeps track of previous button states
@@ -70,12 +71,14 @@ float secondsElapsed(time_t start) {
 // Returns seconds elapsed since any button on the controller was pressed
 float secondsSinceLastButtonPress() { return secondsElapsed(lastGlobalPress); }
 
+void setDelay(float newDelay) { delay = newDelay; }
+
 // Force a delay between button presses
 // Button presses will only be registered every DELAY seconds
-int forcePressDelay(int i) {
+int shouldRegisterPress(int i) {
   // Check if the button has been detected as pressed
   // Must be at least DELAY seconds since button i was pressed
-  int pressed = secondsElapsed(lastPress[i]) > DELAY;
+  int pressed = secondsElapsed(lastPress[i]) > delay;
 
   if (pressed) {
     time_t now = clock();
@@ -88,13 +91,15 @@ int forcePressDelay(int i) {
 }
 
 // Check whether a button has been pressed and held down
-int isButtonHeld(int i) { return buttons[i] == PRESSED && forcePressDelay(i); }
+int isButtonHeld(int i) {
+  return buttons[i] == PRESSED && shouldRegisterPress(i);
+}
 
 // Check whether a button has been pressed
 // Events used with this function are only triggered once
 int isButtonPressed(int i) {
   return buttons[i] == PRESSED && oldButtons[i] == RELEASED &&
-         forcePressDelay(i);
+         shouldRegisterPress(i);
 }
 
 int isButtonReleased(int i) { return buttons[i] == RELEASED; }
@@ -118,7 +123,8 @@ void initSNES() {
   // Sanity check
   if (gpio == NULL) {
     fprintf(stderr,
-            "Fatal error: GPIO must be initialized before accessing the controller! "
+            "Fatal error: GPIO must be initialized before accessing the "
+            "controller! "
             "Aborting...\n");
     exit(1);
   }
