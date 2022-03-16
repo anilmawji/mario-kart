@@ -52,36 +52,51 @@ const char* BUTTON_NAMES[NUM_REAL_BUTTONS] = {"B",
 unsigned int* gpio;
 
 int buttons[NUM_BUTTONS];
+// Keeps track of previous button states
 int oldButtons[NUM_BUTTONS];
+// Keeps track of seconds since a specific button was pressed
 time_t lastPress[NUM_BUTTONS];
-time_t lastButtonPress;
+// Keeps track of seconds since any button was pressed
+// Using a separate variable is more efficient than searching through lastPress
+time_t lastGlobalPress;
 
 const char* getButtonName(int i) { return BUTTON_NAMES[i]; }
 
-int isButtonPressed(int i) { return buttons[i] == PRESSED; }
-
-int isButtonReleased(int i) { return buttons[i] == RELEASED; }
-
+// Returns seconds elapsed since a given time
 float secondsElapsed(time_t start) {
   return (float)(clock() - start) / CLOCKS_PER_SEC;
 }
 
-float secondsSinceLastButtonPress() { return secondsElapsed(lastButtonPress); }
+// Returns seconds elapsed since any button on the controller was pressed
+float secondsSinceLastButtonPress() { return secondsElapsed(lastGlobalPress); }
 
-int isTimedPress(int i) {
+// Force a delay between button presses
+// Button presses will only be registered every DELAY seconds
+int forcePressDelay(int i) {
   // Check if the button has been detected as pressed
-  // Must be at least DELAY seconds between button presses
-  int pressed = isButtonPressed(i) && secondsElapsed(lastPress[i]) > DELAY;
+  // Must be at least DELAY seconds since button i was pressed
+  int pressed = secondsElapsed(lastPress[i]) > DELAY;
 
   if (pressed) {
     time_t now = clock();
     // Update the time of last press for button i
     lastPress[i] = now;
-    lastButtonPress = now;
+    lastGlobalPress = now;
   }
 
   return pressed;
 }
+
+// Check whether a button has been pressed and held down
+int isButtonHeld(int i) { return buttons[i] == PRESSED && forcePressDelay(i); }
+
+// Check whether a button has been pressed
+// Events used with this function are only triggered once
+int isButtonPressed(int i) {
+  return buttons[i] == PRESSED && oldButtons[i] == RELEASED && forcePressDelay(i);
+}
+
+int isButtonReleased(int i) { return buttons[i] == RELEASED; }
 
 void INP_GPIO(int p) {
   // Determine the GP function and clear the 3 bits associated with pin p
@@ -98,6 +113,8 @@ void OUT_GPIO(int p) {
 
 void initSNES() {
   gpio = getGPIOPtr();
+
+  if (!gpio) printf("GPIO must be initialized before accessing the controller! Aborting...\n");
 
   OUT_GPIO(CLK);
   OUT_GPIO(LAT);

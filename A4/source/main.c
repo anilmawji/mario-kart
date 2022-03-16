@@ -126,13 +126,13 @@ int clamp(int val, int min, int max) {
 void update() {
   gameMap[state.playerY][state.playerX] = BACKGROUND;
 
-  if (isTimedPress(JOY_PAD_UP)) {
+  if (isButtonHeld(JOY_PAD_UP)) {
     state.playerY = clamp(state.playerY - 1, 0, MAP_HEIGHT - 1);
-  } else if (isTimedPress(JOY_PAD_DOWN)) {
+  } else if (isButtonHeld(JOY_PAD_DOWN)) {
     state.playerY = clamp(state.playerY + 1, 0, MAP_HEIGHT - 1);
-  } else if (isTimedPress(JOY_PAD_LEFT)) {
+  } else if (isButtonHeld(JOY_PAD_LEFT)) {
     state.playerX = clamp(state.playerX - 1, 0, MAP_WIDTH - 1);
-  } else if (isTimedPress(JOY_PAD_RIGHT)) {
+  } else if (isButtonHeld(JOY_PAD_RIGHT)) {
     state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
   }
 
