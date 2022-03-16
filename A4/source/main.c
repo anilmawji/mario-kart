@@ -24,10 +24,10 @@
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-#define MAP_WIDTH 20
-#define MAP_HEIGHT 20
 #define CELL_WIDTH 30
 #define CELL_HEIGHT 30
+#define MAP_WIDTH (SCREEN_WIDTH / CELL_WIDTH)
+#define MAP_HEIGHT (SCREEN_HEIGHT / CELL_HEIGHT)
 
 FrameBufferInfo fbinfo;
 Pixel *pixel;
@@ -79,7 +79,7 @@ void drawMap() {
 
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      cellX = x * CELL_HEIGHT + centerX;
+      cellX = x * CELL_WIDTH + centerX;
       cellY = y * CELL_HEIGHT + centerY;
 
       if (x == state.playerX && y == state.playerY) {
