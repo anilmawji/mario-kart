@@ -71,8 +71,7 @@ float secondsSinceLastButtonPress() { return secondsElapsed(lastButtonPress); }
 int isTimedPress(int i) {
   // Check if the button has been detected as pressed
   // Must be at least DELAY seconds between button presses
-  int pressed = isButtonPressed(i) && oldButtons[i] == RELEASED &&
-                secondsElapsed(lastPress[i]) > DELAY;
+  int pressed = isButtonPressed(i) && secondsElapsed(lastPress[i]) > DELAY;
 
   if (pressed) {
     time_t now = clock();
@@ -80,7 +79,7 @@ int isTimedPress(int i) {
     lastPress[i] = now;
     lastButtonPress = now;
   }
-  
+
   return pressed;
 }
 

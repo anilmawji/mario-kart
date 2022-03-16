@@ -151,8 +151,8 @@ int main(int argc, char *argv[]) {
   do {
     drawMap();
     // printMap();
-    update();
     readSNES();
+    update();
   } while (!isButtonPressed(START));
 
   // Deallocate memory
