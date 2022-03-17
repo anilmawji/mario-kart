@@ -22,11 +22,11 @@ void readSNES();
 
 const char* getButtonName(int i);
 
+int isButtonHeld(int i);
+
 int isButtonPressed(int i);
 
 int isButtonReleased(int i);
-
-int isTimedPress(int i);
 
 float secondsSinceLastButtonPress();
 
