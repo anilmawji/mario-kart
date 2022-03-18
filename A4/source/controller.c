@@ -50,8 +50,6 @@ const char* BUTTON_NAMES[NUM_REAL_BUTTONS] = {"B",
 
 unsigned int* gpio = NULL;
 
-float delay = 0.2;
-
 int buttons[NUM_BUTTONS];
 // Keeps track of previous button states
 int oldButtons[NUM_BUTTONS];
@@ -60,6 +58,8 @@ time_t lastPress[NUM_BUTTONS];
 // Keeps track of seconds since any button was pressed
 // Using a separate variable is more efficient than searching through lastPress
 time_t lastGlobalPress;
+
+float buttonDelay = 0.2;
 
 const char* getButtonName(int i) { return BUTTON_NAMES[i]; }
 
@@ -71,14 +71,14 @@ float secondsElapsed(time_t start) {
 // Returns seconds elapsed since any button on the controller was pressed
 float secondsSinceLastButtonPress() { return secondsElapsed(lastGlobalPress); }
 
-void setDelay(float newDelay) { delay = newDelay; }
+void setButtonDelay(float delay) { buttonDelay = delay; }
 
 // Force a delay between button presses
 // Button presses will only be registered every DELAY seconds
 int shouldRegisterPress(int i) {
   // Check if the button has been detected as pressed
   // Must be at least DELAY seconds since button i was pressed
-  int pressed = secondsElapsed(lastPress[i]) > delay;
+  int pressed = secondsElapsed(lastPress[i]) > buttonDelay;
 
   if (pressed) {
     time_t now = clock();

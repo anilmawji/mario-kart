@@ -68,7 +68,7 @@ void drawPixel(Pixel *pixel) {
 
 void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 
-void setSpeed(int speed) { setDelay(speed / 10); }
+void setSpeed(int speed) { setButtonDelay(speed / 10); }
 
 void drawCell(int cellX, int cellY, int color) {
   pixel->color = color;

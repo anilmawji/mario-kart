@@ -30,4 +30,4 @@ int isButtonReleased(int i);
 
 float secondsSinceLastButtonPress();
 
-void setDelay();
+void setButtonDelay(float delay);
