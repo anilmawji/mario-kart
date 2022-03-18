@@ -68,7 +68,9 @@ void drawPixel(Pixel *pixel) {
 
 void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 
-void setSpeed(int speed) { setButtonDelay(speed / 10); }
+// Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
+//     A speed of 2 leads to a delay of 1/(5*2) = 1/10 = 0.1
+void setPlayerSpeed(float speed) { setButtonDelay(1/(5*speed)); }
 
 void drawCell(int cellX, int cellY, int color) {
   pixel->color = color;
@@ -154,16 +156,12 @@ void update() {
 
   if (isButtonHeld(JOY_PAD_UP)) {
     state.playerY = clamp(state.playerY - 1, 0, MAP_HEIGHT - 1);
-    setSpeed(4);
   } else if (isButtonHeld(JOY_PAD_DOWN)) {
     state.playerY = clamp(state.playerY + 1, 0, MAP_HEIGHT - 1);
-    setSpeed(4);
   } else if (isButtonHeld(JOY_PAD_LEFT)) {
     state.playerX = clamp(state.playerX - 1, 0, MAP_WIDTH - 1);
-    setSpeed(2);
   } else if (isButtonHeld(JOY_PAD_RIGHT)) {
     state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
-    setSpeed(2);
   }
 
   // Update player location in map
@@ -177,6 +175,7 @@ int main(int argc, char *argv[]) {
   initGame();
 
   clearScreen();
+  setPlayerSpeed(1);
 
   do {
     drawMap();

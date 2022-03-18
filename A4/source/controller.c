@@ -59,7 +59,7 @@ time_t lastPress[NUM_BUTTONS];
 // Using a separate variable is more efficient than searching through lastPress
 time_t lastGlobalPress;
 
-float buttonDelay = 0.2;
+float buttonDelay = 0.1;
 
 const char* getButtonName(int i) { return BUTTON_NAMES[i]; }
 
