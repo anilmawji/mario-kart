@@ -12,7 +12,6 @@
 
 #include <controller.h>
 #include <fcntl.h>
-#include <framebuffer.h>
 #include <gpio.h>
 #include <mariokart.h>
 #include <stdio.h>
@@ -22,16 +21,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <wiringPi.h>
+#include <renderer.h>
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define VIEWPORT_WIDTH 1280
+#define VIEWPORT_HEIGHT 720
 #define CELL_WIDTH 30
 #define CELL_HEIGHT 30
-#define MAP_WIDTH (SCREEN_WIDTH / CELL_WIDTH)
-#define MAP_HEIGHT (SCREEN_HEIGHT / CELL_HEIGHT)
-
-FrameBufferInfo fbinfo;
-Pixel *pixel;
+#define MAP_WIDTH (VIEWPORT_WIDTH / CELL_WIDTH)
+#define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT)
 
 enum color { RED = 0xF800, BLUE = 0x0000FF, GREY = 0x9493 };
 
@@ -54,52 +51,11 @@ struct State {
 enum cellType { BACKGROUND, PLAYER };
 enum powerup { STAR };
 
-// Location of center of screen in pixels
-int centerX;
-int centerY;
-
 short int *marioPtr = (short int *)marioKartImage.pixel_data;
-
-void drawPixel(Pixel *pixel) {
-  long int location = (pixel->x + fbinfo.xOffset) * (fbinfo.bitsPerPixel / 8) +
-                      (pixel->y + fbinfo.yOffset) * fbinfo.lineLength;
-  *((unsigned short int *)(fbinfo.fbptr + location)) = pixel->color;
-}
-
-void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 //     A speed of 2 leads to a delay of 1/(5*2) = 1/10 = 0.1
 void setPlayerSpeed(float speed) { setButtonDelay(1/(5*speed)); }
-
-void drawCell(int cellX, int cellY, int color) {
-  pixel->color = color;
-
-  for (int y = 0; y < CELL_HEIGHT; y++) {
-    for (int x = 0; x < CELL_WIDTH; x++) {
-      pixel->x = cellX + x;
-      pixel->y = cellY + y;
-
-      drawPixel(pixel);
-    }
-  }
-}
-
-void drawImage(short int *imagePixels, int posX, int posY, int width,
-               int height) {
-  int i = 0;
-
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      pixel->color = imagePixels[i];
-      pixel->x = x + posX;
-      pixel->y = y + posY;
-
-      drawPixel(pixel);
-      i++;
-    }
-  }
-}
 
 void drawMap() {
   int cellX, cellY;
@@ -110,10 +66,9 @@ void drawMap() {
       cellY = y * CELL_HEIGHT + centerY;
 
       if (x == state.playerX && y == state.playerY) {
-        // drawCell(cellX, cellY, RED);
         drawImage(marioPtr, cellX, cellY, CELL_WIDTH, CELL_HEIGHT);
       } else {
-        drawCell(cellX, cellY, GREY);
+        drawRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT, GREY);
       }
     }
   }
@@ -130,10 +85,6 @@ void printMap() {
 }
 
 void initGame() {
-  centerX = (fbinfo.screenWidth - SCREEN_WIDTH) / 2;
-  centerY = (fbinfo.screenHeight - SCREEN_HEIGHT) / 2;
-  pixel = malloc(sizeof(Pixel));
-
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
       state.gameMap[y][x] = BACKGROUND;
@@ -172,6 +123,7 @@ int main(int argc, char *argv[]) {
   fbinfo = initFbInfo();
   initGPIO();
   initSNES();
+  initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGame();
 
   clearScreen();

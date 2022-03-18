@@ -1,5 +1,5 @@
 typedef struct {
-  char *fbptr;  // framebuffer pointer
+  char *fbptr;            // Framebuffer pointer
   int xOffset;
   int yOffset;
   int bitsPerPixel;
