@@ -10,6 +10,6 @@ void clearScreen();
 
 void drawRect(int posX, int posY, int width, int height, int color);
 
-void drawImage(short int *pixelData, int posX, int posY, int width, int height);
+void drawImage(short int *pixelData, int posX, int posY, int width, int height, int backgroundColor);
 
 void initRenderer(int viewportWidth, int viewportHeight);
