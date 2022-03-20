@@ -96,11 +96,6 @@ void printMap() {
   printf("\n\n");
 }
 
-int calculateScore() {
-  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
-         SCORE_CONST;
-}
-
 void initGame() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
@@ -148,6 +143,11 @@ void update() {
 
   // Update player location in map
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
+}
+
+int calculateScore() {
+  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
+         SCORE_CONST;
 }
 
 void drawGUI() {
