@@ -12,6 +12,7 @@
 
 #include <controller.h>
 #include <fcntl.h>
+#include <font.h>
 #include <gpio.h>
 #include <mario.h>
 #include <renderer.h>
@@ -31,13 +32,6 @@
 #define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT)
 
 unsigned int *gpio;
-
-typedef enum {
-  RED = 0xf800,
-  BLUE = 0x0000ff,
-  GREY = 0x7bef,
-  GREEN = 0x5e05
-} Color;
 
 typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
 enum cellType { BACKGROUND, PLAYER };
@@ -73,7 +67,7 @@ void drawMap() {
 
       if (x == state.playerX && y == state.playerY) {
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
-                  CELL_HEIGHT, state.gameMap[y][x]);
+                  CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
       } else {
         drawRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT, state.gameMap[y][x]);
       }
@@ -140,6 +134,8 @@ void update() {
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
 }
 
+void drawMenuScreen() {}
+
 int main(int argc, char *argv[]) {
   fbinfo = initFbInfo();
   initGPIO();
@@ -147,12 +143,27 @@ int main(int argc, char *argv[]) {
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGame();
 
-  clearScreen();
+  //clearScreen();
   setPlayerSpeed(1.5);
+
+  SpriteSheet fontSheet;
+  fontSheet.pixelData = (short int *)font_sprite.pixel_data;
+  fontSheet.width = 720;
+  fontSheet.height = 380;
+  fontSheet.rows = 3;
+  fontSheet.cols = 13;
+  fontSheet.paddingX = 4;
+  fontSheet.paddingY = 4;
+  fontSheet.backgroundColor = -14824;
+
+  int x = 0;
+  int ox = 0;
 
   do {
     drawMap();
-    // printMap();
+    //printMap();
+    drawText("The swift fox jumped over the lazy dog", 38, 0, 0, RED);
+    drawText("0123456789", 10, 0, 64, RED);
     readSNES();
     update();
   } while (!isButtonPressed(START));
