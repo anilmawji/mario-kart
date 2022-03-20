@@ -8,6 +8,8 @@
 
 #define NUM_SYMBOLS 36
 #define MAX_ASCII_VAL 90
+#define SYMBOL_WIDTH 32
+#define SYMBOL_HEIGHT 32
 
 typedef enum {
   TEXT_COLOR = -33,
@@ -50,14 +52,13 @@ void drawImage(short int *pixelData, int posX, int posY, int width, int height,
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      pixel->x = posX + x;
-      pixel->y = posY + y;
-
       if (pixelData[i] == oldBgColor) {
         pixel->color = newBgColor;
       } else {
         pixel->color = pixelData[i];
       }
+      pixel->x = posX + x;
+      pixel->y = posY + y;
 
       drawPixel(pixel);
       i++;
@@ -91,6 +92,7 @@ void drawSprite(SpriteSheet sheet, int posX, int posY, int width, int height,
         }
         pixel->x = posX + x - startX;
         pixel->y = posY + y - startY;
+
         drawPixel(pixel);
       }
       i++;
@@ -104,10 +106,10 @@ void drawText(char *text, int length, int posX, int posY, int bgColor) {
   for (int i = 0; i < length; i++) {
     if (text[i] != ' ') {
       ch = toupper(text[i]);
-      drawSprite(fontSheet, posX, posY, 32, 32, fontMap[ch][0], fontMap[ch][1],
-                bgColor);
+      drawSprite(fontSheet, posX, posY, SYMBOL_WIDTH, SYMBOL_HEIGHT,
+                 fontMap[ch][0], fontMap[ch][1], bgColor);
     }
-    posX += 32;
+    posX += SYMBOL_WIDTH;
   }
 }
 
@@ -123,13 +125,13 @@ void initFontMap() {
 
   int ch;
 
-  //Precompute the location of each symbol in the sprite sheet
+  // Precompute the location of each symbol in the sprite sheet
   for (int i = 0; i < NUM_SYMBOLS; i++) {
     ch = symbols[i];
     fontMap[ch][0] = i % fontSheet.cols;  // offsetX
     fontMap[ch][1] = i / fontSheet.cols;  // offsetY
 
-    //printf("%c\t%d\t%d\n", ch, fontMap[ch][0], fontMap[ch][1]);
+    // printf("%c\t%d\t%d\n", ch, fontMap[ch][0], fontMap[ch][1]);
   }
 }
 
