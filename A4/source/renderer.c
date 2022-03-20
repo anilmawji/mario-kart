@@ -8,8 +8,6 @@
 
 #define NUM_SYMBOLS 36
 #define MAX_ASCII_VAL 90
-#define SYMBOL_WIDTH 32
-#define SYMBOL_HEIGHT 32
 
 typedef enum {
   TEXT_COLOR = -33,
@@ -126,7 +124,7 @@ void drawText(char *text, int length, int posX, int posY, int bgColor) {
       drawSpriteTile(fontSheet, posX, posY, fontMap[ch][0], fontMap[ch][1],
                      bgColor);
     }
-    posX += SYMBOL_WIDTH;
+    posX += sheet.tileWidth;
   }
 }
 
