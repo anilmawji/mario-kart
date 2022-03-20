@@ -41,9 +41,8 @@ typedef enum {
 
 typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
 enum cellType { BACKGROUND, PLAYER };
-typedef enum { STAR } Powerup;
 
-struct State {
+struct GameState {
   int gameMap[MAP_WIDTH][MAP_HEIGHT];
   int objectPositions[MAP_WIDTH][MAP_HEIGHT];
   int playerX;
@@ -52,11 +51,9 @@ struct State {
   int speed;
   int score;
   int lives;
-  Powerup activePowerup;
   time_t timeLeft;
   int win;
   int lose;
-  int paused;
 } state;
 
 short int *marioSprites[] = {
