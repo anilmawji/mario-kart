@@ -155,16 +155,16 @@ void drawGUI() {
   drawText(textBuffer, 4, centerX + 6 * CELL_WIDTH, centerY, 0);
 
   sprintf(textBuffer, "%02d", state.lives);
-  drawText(textBuffer, 2, centerX + (12 + 6) * CELL_WIDTH, centerY, 0);
+  drawText(textBuffer, 2, centerX + (12 + 3.5 + 6) * CELL_WIDTH, centerY, 0);
 
   formatTimeLeft(state.timeLeft, textBuffer);
-  drawText(textBuffer, 5, centerX + (12 * 2 + 3) * CELL_WIDTH, centerY, 0);
+  drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, centerY, 0);
 }
 
 void initGUI() {
   drawText("score ", 6, centerX, centerY, 0);
-  drawText("lives ", 6, centerX + 12 * CELL_WIDTH, centerY, 0);
-  drawText("time ", 5, centerX + (12 * 2 - 2) * CELL_WIDTH, centerY, 0);
+  drawText("lives ", 6, centerX + (12 + 3.5) * CELL_WIDTH, centerY, 0);
+  drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, centerY, 0);
 }
 
 void drawMenuScreen() { drawImage(menuBackground, 0, 0, 1280, 640, -1, RED); }
