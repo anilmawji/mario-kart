@@ -124,7 +124,7 @@ void drawText(char *text, int length, int posX, int posY, int bgColor) {
       drawSpriteTile(fontSheet, posX, posY, fontMap[ch][0], fontMap[ch][1],
                      bgColor);
     }
-    posX += sheet.tileWidth;
+    posX += fontSheet.tileWidth;
   }
 }
 
