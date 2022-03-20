@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 
 #define NUM_SYMBOLS 36
+#define MAX_ASCII_VAL 90
 
 typedef enum {
   TEXT_COLOR = -33,
@@ -18,7 +19,7 @@ char symbols[NUM_SYMBOLS] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
                              'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
                              'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '1',
                              '2', '3', '4', '5', '6', '7', '8', '9', '0'};
-int fontMap[91][2];
+int fontMap[MAX_ASCII_VAL + 1][2];
 
 SpriteSheet fontSheet;
 

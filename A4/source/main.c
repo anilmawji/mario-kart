@@ -143,21 +143,8 @@ int main(int argc, char *argv[]) {
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGame();
 
-  //clearScreen();
+  clearScreen();
   setPlayerSpeed(1.5);
-
-  SpriteSheet fontSheet;
-  fontSheet.pixelData = (short int *)font_sprite.pixel_data;
-  fontSheet.width = 720;
-  fontSheet.height = 380;
-  fontSheet.rows = 3;
-  fontSheet.cols = 13;
-  fontSheet.paddingX = 4;
-  fontSheet.paddingY = 4;
-  fontSheet.backgroundColor = -14824;
-
-  int x = 0;
-  int ox = 0;
 
   do {
     drawMap();
