@@ -52,6 +52,7 @@ void drawImage(short int *pixelData, int posX, int posY, int width, int height,
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
+      // if (y == 0) printf("%d\n", pixelData[i]);
       if (pixelData[i] == oldBgColor) {
         pixel->color = newBgColor;
       } else {
@@ -66,29 +67,18 @@ void drawImage(short int *pixelData, int posX, int posY, int width, int height,
   }
 }
 
-/**
- * Helper function primarily for debugging purposes
- */
-void drawSpriteSheet(SpriteSheet sheet, int posX, int posY) {
-  drawImage(sheet.pixelData, posX, posY, sheet.width, sheet.height,
-            sheet.backgroundColor, sheet.backgroundColor);
-}
-
-void drawSprite(SpriteSheet sheet, int posX, int posY, int width, int height,
-                int offsetX, int offsetY, int newBgColor) {
-  int startY = offsetY * height + (1 + offsetY) * sheet.paddingY;
-  int startX = offsetX * width + (1 + offsetX) * sheet.paddingX;
-  int endY = startY + height - 1;
-  int endX = startX + width - 1;
+void drawCroppedImage(short int *pixelData, int posX, int posY, int oldWidth,
+                      int oldHeight, int startX, int startY, int endX, int endY,
+                      int oldBgColor, int newBgColor) {
   int i = 0;
 
-  for (int y = 0; y < sheet.height; y++) {
-    for (int x = 0; x < sheet.width; x++) {
+  for (int y = 0; y < oldHeight; y++) {
+    for (int x = 0; x < oldWidth; x++) {
       if (y <= endY && y >= startY && x <= endX && x >= startX) {
-        if (sheet.pixelData[i] == sheet.backgroundColor) {
+        if (pixelData[i] == oldBgColor) {
           pixel->color = newBgColor;
         } else {
-          pixel->color = sheet.pixelData[i];
+          pixel->color = pixelData[i];
         }
         pixel->x = posX + x - startX;
         pixel->y = posY + y - startY;
@@ -100,14 +90,41 @@ void drawSprite(SpriteSheet sheet, int posX, int posY, int width, int height,
   }
 }
 
+/**
+ * Helper function primarily for debugging purposes
+ */
+void drawSpriteSheet(SpriteSheet sheet, int posX, int posY) {
+  drawImage(sheet.pixelData, posX, posY, sheet.width, sheet.height,
+            sheet.backgroundColor, sheet.backgroundColor);
+}
+
+void drawSprite(SpriteSheet sheet, int posX, int posY, int width, int height,
+                int startX, int startY, int newBgColor) {
+  drawCroppedImage(sheet.pixelData, posX, posY, sheet.width, sheet.height,
+                   startX, startY, startX + width - 1, startY + height - 1,
+                   sheet.backgroundColor, newBgColor);
+}
+
+void drawSpriteTile(SpriteSheet sheet, int posX, int posY, int tileX, int tileY,
+                    int newBgColor) {
+  int startX = tileX * sheet.tileWidth + (1 + tileX) * sheet.paddingX;
+  int startY = tileY * sheet.tileHeight + (1 + tileY) * sheet.paddingY;
+  int endX = startX + sheet.tileWidth - 1;
+  int endY = startY + sheet.tileHeight - 1;
+
+  drawCroppedImage(sheet.pixelData, posX, posY, sheet.width, sheet.height,
+                   startX, startY, endX, endY, sheet.backgroundColor,
+                   newBgColor);
+}
+
 void drawText(char *text, int length, int posX, int posY, int bgColor) {
   int ch;
 
   for (int i = 0; i < length; i++) {
     if (text[i] != ' ') {
       ch = toupper(text[i]);
-      drawSprite(fontSheet, posX, posY, SYMBOL_WIDTH, SYMBOL_HEIGHT,
-                 fontMap[ch][0], fontMap[ch][1], bgColor);
+      drawSpriteTile(fontSheet, posX, posY, fontMap[ch][0], fontMap[ch][1],
+                     bgColor);
     }
     posX += SYMBOL_WIDTH;
   }
@@ -119,6 +136,8 @@ void initFontMap() {
   fontSheet.height = 380;
   fontSheet.rows = 3;
   fontSheet.cols = 13;
+  fontSheet.tileWidth = 32;
+  fontSheet.tileHeight = 32;
   fontSheet.paddingX = 4;
   fontSheet.paddingY = 4;
   fontSheet.backgroundColor = -14824;
@@ -128,8 +147,8 @@ void initFontMap() {
   // Precompute the location of each symbol in the sprite sheet
   for (int i = 0; i < NUM_SYMBOLS; i++) {
     ch = symbols[i];
-    fontMap[ch][0] = i % fontSheet.cols;  // offsetX
-    fontMap[ch][1] = i / fontSheet.cols;  // offsetY
+    fontMap[ch][0] = i % fontSheet.cols;  // tileX
+    fontMap[ch][1] = i / fontSheet.cols;  // tileY
 
     // printf("%c\t%d\t%d\n", ch, fontMap[ch][0], fontMap[ch][1]);
   }
@@ -143,4 +162,7 @@ void initRenderer(int viewportWidth, int viewportHeight) {
   initFontMap();
 }
 
-void cleanUp() { free(pixel); }
+void cleanUpRenderer() {
+  free(pixel);
+  pixel = NULL;
+}

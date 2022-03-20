@@ -15,6 +15,7 @@
 #include <font.h>
 #include <gpio.h>
 #include <mario.h>
+#include <menuassets.h>
 #include <renderer.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +54,9 @@ struct GameState {
 short int *marioSprites[] = {
     (short int *)mario_up.pixel_data, (short int *)mario_down.pixel_data,
     (short int *)mario_right.pixel_data, (short int *)mario_left.pixel_data};
+
+short int *menuBackground = (short int *)menu_background.pixel_data;
+short int *menuTitle = (short int *)menu_title.pixel_data;
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
@@ -134,7 +138,11 @@ void update() {
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
 }
 
-void drawMenuScreen() {}
+void drawMenuScreen() {
+  // drawSpriteSheet(menuSheet, 0, 0);
+  // drawImage(menuSheet, 0, 0, 1280, 640, 10 + 585, 10*2 + 190, RED);
+  drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
+}
 
 int main(int argc, char *argv[]) {
   fbinfo = initFbInfo();
@@ -147,17 +155,17 @@ int main(int argc, char *argv[]) {
   setPlayerSpeed(1.5);
 
   do {
+    // printMap();
+    drawText("The swift fox jumped over the lazy dog", 38, 0, 0, 0);
+    drawText("0123456789", 10, 0, 64, 0);
     drawMap();
-    //printMap();
-    drawText("The swift fox jumped over the lazy dog", 38, 0, 0, RED);
-    drawText("0123456789", 10, 0, 64, RED);
+    // drawMenuScreen();
     readSNES();
     update();
   } while (!isButtonPressed(START));
 
   // Deallocate memory
-  free(pixel);
-  pixel = NULL;
+  cleanUpRenderer();
   munmap(fbinfo.fbptr, fbinfo.screenSizeBytes);
 
   return 0;
