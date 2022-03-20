@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#include <time.h>
+#include <timer.h>
 #include <unistd.h>
 #include <wiringPi.h>
 
@@ -30,7 +30,9 @@
 #define CELL_WIDTH 32
 #define CELL_HEIGHT 32
 #define MAP_WIDTH (VIEWPORT_WIDTH / CELL_WIDTH)
-#define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT)
+#define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT - 1)
+#define SCORE_CONST 5
+#define BUFFER_SIZE 20
 
 unsigned int *gpio;
 
@@ -44,12 +46,13 @@ struct GameState {
   int playerY;
   Direction playerDirection;
   int speed;
-  int score;
   int lives;
-  time_t timeLeft;
+  Timer timeLeft;
   int win;
   int lose;
 } state;
+
+char textBuffer[BUFFER_SIZE];
 
 short int *marioSprites[] = {
     (short int *)mario_up.pixel_data, (short int *)mario_down.pixel_data,
@@ -67,7 +70,7 @@ void drawMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
       cellX = x * CELL_WIDTH + centerX;
-      cellY = y * CELL_HEIGHT + centerY;
+      cellY = (y + 1) * CELL_HEIGHT + centerY;
 
       if (x == state.playerX && y == state.playerY) {
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
@@ -93,6 +96,11 @@ void printMap() {
   printf("\n\n");
 }
 
+int calculateScore() {
+  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
+         SCORE_CONST;
+}
+
 void initGame() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
@@ -108,7 +116,11 @@ void initGame() {
   state.playerX = 0;
   state.playerY = 0;
   state.playerDirection = MV_DOWN;
+  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
+  state.lives = 4;
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
+
+  startTimer(state.timeLeft);
 }
 
 int clamp(int val, int min, int max) {
@@ -138,11 +150,24 @@ void update() {
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
 }
 
-void drawMenuScreen() {
-  // drawSpriteSheet(menuSheet, 0, 0);
-  // drawImage(menuSheet, 0, 0, 1280, 640, 10 + 585, 10*2 + 190, RED);
-  drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
+void drawGUI() {
+  sprintf(textBuffer, "%04d", calculateScore());
+  drawText(textBuffer, 4, centerX + 6 * CELL_WIDTH, centerY, 0);
+
+  sprintf(textBuffer, "%02d", state.lives);
+  drawText(textBuffer, 2, centerX + (12 + 6) * CELL_WIDTH, centerY, 0);
+
+  formatTimeLeft(state.timeLeft, textBuffer);
+  drawText(textBuffer, 5, centerX + (12 * 2 + 3) * CELL_WIDTH, centerY, 0);
 }
+
+void initGUI() {
+  drawText("score ", 6, centerX, centerY, 0);
+  drawText("lives ", 6, centerX + 12 * CELL_WIDTH, centerY, 0);
+  drawText("time ", 5, centerX + (12 * 2 - 2) * CELL_WIDTH, centerY, 0);
+}
+
+void drawMenuScreen() { drawImage(menuBackground, 0, 0, 1280, 640, -1, RED); }
 
 int main(int argc, char *argv[]) {
   fbinfo = initFbInfo();
@@ -152,12 +177,12 @@ int main(int argc, char *argv[]) {
   initGame();
 
   clearScreen();
+  initGUI();
   setPlayerSpeed(1.5);
 
   do {
     // printMap();
-    drawText("The swift fox jumped over the lazy dog", 38, 0, 0, 0);
-    drawText("0123456789", 10, 0, 64, 0);
+    drawGUI();
     drawMap();
     // drawMenuScreen();
     readSNES();
