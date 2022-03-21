@@ -24,6 +24,7 @@
 #include <timer.h>
 #include <unistd.h>
 #include <wiringPi.h>
+#include <time.h>
 
 #define VIEWPORT_WIDTH 1280
 #define VIEWPORT_HEIGHT 720
@@ -72,7 +73,7 @@ void drawMap() {
       cellX = x * CELL_WIDTH + centerX;
       cellY = (y + 1) * CELL_HEIGHT + centerY;
 
-      if (x == state.playerX && y == state.playerY) {
+      if (state.objectPositions[y][x] == PLAYER ) {
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
                   CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
       } else {
@@ -80,7 +81,12 @@ void drawMap() {
       }
     }
   }
+
 }
+
+
+
+
 
 void printMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -180,10 +186,22 @@ int main(int argc, char *argv[]) {
   initGUI();
   setPlayerSpeed(1.5);
 
+  
+  double time = clock();
   do {
-    // printMap();
-    drawGUI();
-    drawMap();
+    printMap();
+    state.objectPositions [9][9] = PLAYER;
+    // drawGUI();
+    // drawMap();
+    
+    
+    if ((double)(clock() - time)/CLOCKS_PER_SEC >1){
+      // update method
+      time = clock();
+      
+    }
+
+
     // drawMenuScreen();
     readSNES();
     update();

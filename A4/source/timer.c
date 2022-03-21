@@ -4,10 +4,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void startTimer(Timer time) { time.start = clock(); }
+void startTimer(Timer time) {
+  
+  time.start = clock(); 
+  
+  }
 
 double timerMillisElapsed(Timer time) {
   return (double)(clock() - time.start) * 1000 / CLOCKS_PER_SEC;
+}
+
+double timeDiff(Timer time){
+  return (clock() - time.start);
 }
 
 double timerMillisLeft(Timer time) {

@@ -13,3 +13,5 @@ double timerMillisLeft(Timer time);
 void formatTimeLeft(Timer time, char *str);
 
 int isTimerFinished(Timer time);
+
+double timeDiff(Timer time);
