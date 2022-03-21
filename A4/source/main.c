@@ -84,9 +84,11 @@ void drawMap() {
 
 }
 
-
-
-
+void addObstacle(int x) {
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    state.gameMap[y][x] = GREY;
+  }
+}
 
 void printMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -105,14 +107,13 @@ void printMap() {
 void initGame() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      if (x <= 8 && x >= 5) {
-        state.gameMap[y][x] = GREY;
-      } else {
-        state.gameMap[y][x] = GREEN;
-      }
+      state.gameMap[y][x] = GREEN;
       state.objectPositions[y][x] = BACKGROUND;
     }
   }
+
+  addObstacle(4);
+  addObstacle(6);
 
   state.playerX = 0;
   state.playerY = 0;
