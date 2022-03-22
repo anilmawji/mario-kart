@@ -8,8 +8,10 @@ int viewportY;
 
 typedef enum {
   TRANSPARENT = 0x0,
+  BLACK = 0x0,
+  WHITE = -1,  // idfk how but it works and 0xffff doesn't
   RED = 0xf800,
-  BLUE = 0x0000ff,
+  BLUE = 0x00ff,
   GREY = 0x7bef,
   GREEN = 0x5e05
 } Color;
@@ -29,7 +31,10 @@ typedef struct {
 
 void clearScreen();
 
-void drawRect(int posX, int posY, int width, int height, int color);
+void drawFillRect(int posX, int posY, int width, int height, int color);
+
+void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize,
+                    int bgcolor, int strokeColor);
 
 void drawImage(short int *pixelData, int posX, int posY, int width, int height,
                int oldBgColor, int newBgColor);

@@ -33,8 +33,9 @@ void drawPixel(Pixel *pixel) {
 
 void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 
-void drawRect(int posX, int posY, int width, int height, int color) {
-  pixel->color = color;
+//Filled rectangle
+void drawFillRect(int posX, int posY, int width, int height, int bgcolor) {
+  pixel->color = bgcolor;
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
@@ -42,6 +43,22 @@ void drawRect(int posX, int posY, int width, int height, int color) {
       pixel->y = posY + y;
 
       drawPixel(pixel);
+    }
+  }
+}
+
+//Rectangle outline
+void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize, int bgcolor, int strokeColor) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if (x <= strokeSize || x >= width - strokeSize || y <= strokeSize ||
+          y >= height - strokeSize) {
+        pixel->color = strokeColor;
+        pixel->x = posX + x;
+        pixel->y = posY + y;
+
+        drawPixel(pixel);
+      }
     }
   }
 }

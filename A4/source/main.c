@@ -91,7 +91,8 @@ void drawMap() {
       cellY = mapY + y * CELL_HEIGHT;
 
       if (state.objectPositions[y][x] == BACKGROUND) {
-        drawRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT, state.gameMap[y][x]);
+        drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+                     state.gameMap[y][x]);
       } else if (state.objectPositions[y][x] == PLAYER) {
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
                   CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
@@ -116,7 +117,8 @@ void drawGuiValues() {
   drawText(textBuffer, 4, viewportX + 6 * CELL_WIDTH, viewportY, 0);
 
   sprintf(textBuffer, "%02d", state.lives);
-  drawText(textBuffer, 2, viewportX + (12 + 3.5 + 6) * CELL_WIDTH, viewportY, 0);
+  drawText(textBuffer, 2, viewportX + (12 + 3.5 + 6) * CELL_WIDTH, viewportY,
+           0);
 
   formatTimeLeft(state.timeLeft, textBuffer);
   drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, viewportY, 0);
@@ -158,14 +160,34 @@ void updatePlayer() {
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
 
+//TODO
+void drawMenuButton(int buttonIndex, char* text) {
+
+}
+
 void drawMenuScreen() {
   // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
 
-  drawText("start", 5, viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2,
-           viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, 0);
-  drawText("quit", 4, viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2,
-           viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 2 * CELL_HEIGHT,
-           0);
+  int titleX;
+
+  drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
+            mapY, menu_title.width, menu_title.height, WHITE, BLACK);
+
+  int startBtnX = viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2;
+  int startBtnY = viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2;
+  
+  int quitBtnX = viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2;
+  int quitBtnY =
+      viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 3 * CELL_HEIGHT;
+
+  drawText("start", 5, startBtnX, startBtnY, 0);
+  drawText("quit", 4, quitBtnX, quitBtnY, 0);
+
+  drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
+                 (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY, BLUE);
+
+  drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
+                 (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY, BLUE);
 }
 
 void initGame() {
@@ -200,16 +222,16 @@ int main(int argc, char *argv[]) {
   initGame();
 
   clearScreen();
-  drawGuiLabels();
+  // drawGuiLabels();
   setPlayerSpeed(1.5);
 
   double time = clock();
-  
+
   while (!isButtonPressed(START)) {
     // printMap();
-    drawGuiValues();
-    drawMap();
-    // drawMenuScreen();
+    // drawGuiValues();
+    //drawMap();
+    drawMenuScreen();
 
     if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
       // update method
