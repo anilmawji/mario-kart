@@ -3,8 +3,8 @@
 FrameBufferInfo fbinfo;
 Pixel *pixel;
 
-int centerX;
-int centerY;
+int viewportX;
+int viewportY;
 
 typedef enum {
   TRANSPARENT = 0x0,

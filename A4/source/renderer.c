@@ -9,16 +9,18 @@
 #define NUM_SYMBOLS 36
 #define MAX_ASCII_VAL 90
 
+// Currently unused
+// Can be used to modify text colors in the future
 typedef enum {
   TEXT_COLOR = -33,
   STROKE_COLOR = 863,
   BG_COLOR = -14824
 } DefaultFontColors;
 
-char symbols[NUM_SYMBOLS] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
-                             'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-                             'U', 'V', 'W', 'X', 'Y', 'Z', '1', '2', '3', '4',
-                             '5', '6', '7', '8', '9', '0'};
+char symbols[NUM_SYMBOLS] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+                             'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+                             'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '1',
+                             '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 int fontMap[MAX_ASCII_VAL + 1][2];
 
 SpriteSheet fontSheet;
@@ -153,8 +155,8 @@ void initFontMap() {
 }
 
 void initRenderer(int viewportWidth, int viewportHeight) {
-  centerX = (fbinfo.screenWidth - viewportWidth) / 2;
-  centerY = (fbinfo.screenHeight - viewportHeight) / 2;
+  viewportX = (fbinfo.screenWidth - viewportWidth) / 2;
+  viewportY = (fbinfo.screenHeight - viewportHeight) / 2;
   pixel = malloc(sizeof(Pixel));
 
   initFontMap();

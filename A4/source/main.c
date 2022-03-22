@@ -21,16 +21,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <timer.h>
 #include <unistd.h>
 #include <wiringPi.h>
-#include <time.h>
 
 #define VIEWPORT_WIDTH 1280
 #define VIEWPORT_HEIGHT 720
 #define CELL_WIDTH 32
 #define CELL_HEIGHT 32
 #define MAP_WIDTH (VIEWPORT_WIDTH / CELL_WIDTH)
+// Subtract 1 to make space for the row of gui labels on top
 #define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT - 1)
 #define SCORE_CONST 5
 #define BUFFER_SIZE 20
@@ -38,11 +39,14 @@
 unsigned int *gpio;
 
 typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
+
+// Used by objectPositions to determine the type of object occupying a cell
+// Cells marked as background are not occupied by an object
 enum cellType { BACKGROUND, PLAYER };
 
 struct GameState {
-  int gameMap[MAP_WIDTH][MAP_HEIGHT];
-  int objectPositions[MAP_WIDTH][MAP_HEIGHT];
+  int gameMap[MAP_HEIGHT][MAP_WIDTH];
+  int objectPositions[MAP_HEIGHT][MAP_WIDTH];
   int playerX;
   int playerY;
   Direction playerDirection;
@@ -53,6 +57,8 @@ struct GameState {
   int lose;
 } state;
 
+int mapX, mapY;
+
 char textBuffer[BUFFER_SIZE];
 
 short int *marioSprites[] = {
@@ -61,34 +67,6 @@ short int *marioSprites[] = {
 
 short int *menuBackground = (short int *)menu_background.pixel_data;
 short int *menuTitle = (short int *)menu_title.pixel_data;
-
-// Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
-void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
-
-void drawMap() {
-  int cellX, cellY;
-
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      cellX = x * CELL_WIDTH + centerX;
-      cellY = (y + 1) * CELL_HEIGHT + centerY;
-
-      if (state.objectPositions[y][x] == PLAYER ) {
-        drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
-                  CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
-      } else {
-        drawRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT, state.gameMap[y][x]);
-      }
-    }
-  }
-
-}
-
-void addObstacle(int x) {
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    state.gameMap[y][x] = GREY;
-  }
-}
 
 void printMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -104,34 +82,59 @@ void printMap() {
   printf("\n\n");
 }
 
-void initGame() {
+void drawMap() {
+  int cellX, cellY;
+
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      state.gameMap[y][x] = GREEN;
-      state.objectPositions[y][x] = BACKGROUND;
+      cellX = mapX + x * CELL_WIDTH;
+      cellY = mapY + y * CELL_HEIGHT;
+
+      if (state.objectPositions[y][x] == BACKGROUND) {
+        drawRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT, state.gameMap[y][x]);
+      } else if (state.objectPositions[y][x] == PLAYER) {
+        drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
+                  CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
+      }
     }
   }
+}
 
-  addObstacle(4);
-  addObstacle(6);
+void addObstacle(int x) {
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    state.gameMap[y][x] = GREY;
+  }
+}
 
-  state.playerX = 0;
-  state.playerY = 0;
-  state.playerDirection = MV_DOWN;
-  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
-  state.lives = 4;
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+int calculateScore() {
+  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
+         SCORE_CONST;
+}
 
-  startTimer(state.timeLeft);
+void drawGuiValues() {
+  sprintf(textBuffer, "%04d", calculateScore());
+  drawText(textBuffer, 4, viewportX + 6 * CELL_WIDTH, viewportY, 0);
+
+  sprintf(textBuffer, "%02d", state.lives);
+  drawText(textBuffer, 2, viewportX + (12 + 3.5 + 6) * CELL_WIDTH, viewportY, 0);
+
+  formatTimeLeft(state.timeLeft, textBuffer);
+  drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, viewportY, 0);
+}
+
+void drawGuiLabels() {
+  drawText("score ", 6, viewportX, viewportY, 0);
+  drawText("lives ", 6, viewportX + (12 + 3.5) * CELL_WIDTH, viewportY, 0);
+  drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
 int clamp(int val, int min, int max) {
-  if (val > max) return max;
-  if (val < min) return min;
+  if (val >= max) return max;
+  if (val <= min) return min;
   return val;
 }
 
-void update() {
+void updatePlayer() {
   state.objectPositions[state.playerY][state.playerX] = BACKGROUND;
 
   if (isButtonHeld(JOY_PAD_UP)) {
@@ -152,29 +155,42 @@ void update() {
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
 }
 
-int calculateScore() {
-  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
-         SCORE_CONST;
+// Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
+void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
+
+void drawMenuScreen() {
+  // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
+
+  drawText("start", 5, viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2,
+           viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, 0);
+  drawText("quit", 4, viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2,
+           viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 2 * CELL_HEIGHT,
+           0);
 }
 
-void drawGUI() {
-  sprintf(textBuffer, "%04d", calculateScore());
-  drawText(textBuffer, 4, centerX + 6 * CELL_WIDTH, centerY, 0);
+void initGame() {
+  mapX = viewportX;
+  mapY = viewportY + CELL_HEIGHT;
 
-  sprintf(textBuffer, "%02d", state.lives);
-  drawText(textBuffer, 2, centerX + (12 + 3.5 + 6) * CELL_WIDTH, centerY, 0);
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    for (int x = 0; x < MAP_WIDTH; x++) {
+      state.gameMap[y][x] = GREEN;
+      state.objectPositions[y][x] = BACKGROUND;
+    }
+  }
 
-  formatTimeLeft(state.timeLeft, textBuffer);
-  drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, centerY, 0);
+  addObstacle(4);
+  addObstacle(6);
+
+  state.playerX = 3;
+  state.playerY = MAP_HEIGHT / 2 - 1;
+  state.playerDirection = MV_RIGHT;
+  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
+  state.lives = 4;
+  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+
+  startTimer(state.timeLeft);
 }
-
-void initGUI() {
-  drawText("score ", 6, centerX, centerY, 0);
-  drawText("lives ", 6, centerX + (12 + 3.5) * CELL_WIDTH, centerY, 0);
-  drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, centerY, 0);
-}
-
-void drawMenuScreen() { drawImage(menuBackground, 0, 0, 1280, 640, -1, RED); }
 
 int main(int argc, char *argv[]) {
   fbinfo = initFbInfo();
@@ -184,29 +200,25 @@ int main(int argc, char *argv[]) {
   initGame();
 
   clearScreen();
-  initGUI();
+  drawGuiLabels();
   setPlayerSpeed(1.5);
 
-  
   double time = clock();
-  do {
-    printMap();
-    state.objectPositions [9][9] = PLAYER;
-    // drawGUI();
-    // drawMap();
-    
-    
-    if ((double)(clock() - time)/CLOCKS_PER_SEC >1){
+  
+  while (!isButtonPressed(START)) {
+    // printMap();
+    drawGuiValues();
+    drawMap();
+    // drawMenuScreen();
+
+    if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
       // update method
       time = clock();
-      
     }
 
-
-    // drawMenuScreen();
     readSNES();
-    update();
-  } while (!isButtonPressed(START));
+    updatePlayer();
+  }
 
   // Deallocate memory
   cleanUpRenderer();
