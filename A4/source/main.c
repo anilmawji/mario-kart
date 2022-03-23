@@ -79,7 +79,7 @@ short int *marioSprites[] = {
 short int *menuBackground = (short int *)menu_background.pixel_data;
 short int *menuTitle = (short int *)menu_title.pixel_data;
 
-short int *bowserSprite = (short int *)bowser.pixel_data;
+short int *bowserSprite = (short int *)bowser_down.pixel_data;
 
 void printMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -394,6 +394,7 @@ int main(int argc, char *argv[]) {
   initGame();
 
   viewMenu();
+  clearScreen();
 
   // Deallocate memory
   cleanUpRenderer();

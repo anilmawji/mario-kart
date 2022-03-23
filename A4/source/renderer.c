@@ -69,7 +69,6 @@ void drawImage(short int *pixelData, int posX, int posY, int width, int height,
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      // if (y == 0) printf("%d\n", pixelData[i]);
       if (pixelData[i] == oldBgColor) {
         pixel->color = newBgColor;
       } else {
