@@ -39,22 +39,10 @@
 unsigned int *gpio;
 
 typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
-<<<<<<< HEAD
-enum cellType {
-  BACKGROUND,
-  PLAYER,
-  MOVINGOBSTACLE,
-  STATICOBSTACLE,
-  POWERUP1,
-  POWERUP2,
-  POWERUP3
-};
-=======
 
 // Used by objectPositions to determine the type of object occupying a cell
 // Cells marked as background are not occupied by an object
 enum cellType { BACKGROUND, PLAYER };
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
 
 struct GameState {
   int gameMap[MAP_HEIGHT][MAP_WIDTH];
@@ -102,14 +90,10 @@ void drawMap() {
       cellX = mapX + x * CELL_WIDTH;
       cellY = mapY + y * CELL_HEIGHT;
 
-<<<<<<< HEAD
-      if (state.objectPositions[y][x] != BACKGROUND) {
-=======
       if (state.objectPositions[y][x] == BACKGROUND) {
         drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
                      state.gameMap[y][x]);
       } else if (state.objectPositions[y][x] == PLAYER) {
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
                   CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
       }
@@ -123,41 +107,15 @@ void addObstacle(int x) {
   }
 }
 
-<<<<<<< HEAD
-void printMap() {
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      if (state.objectPositions[y][x] == BACKGROUND) {
-        printf("0 ");
-      } else {
-        printf("%d ", state.objectPositions[y][x]);
-      }
-    }
-    printf("\n");
-  }
-  printf("\n\n");
-=======
 int calculateScore() {
   return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
          SCORE_CONST;
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
 }
 
 void drawGuiValues() {
   sprintf(textBuffer, "%04d", calculateScore());
   drawText(textBuffer, 4, viewportX + 6 * CELL_WIDTH, viewportY, 0);
 
-<<<<<<< HEAD
-  // addObstacle(4);
-  // addObstacle(6);
-
-  state.playerX = 0;
-  state.playerY = 0;
-  state.playerDirection = MV_DOWN;
-  state.timeLeft.secondsAllowed = 3 * 60; // seconds
-  state.lives = 4;
-  // state.objectPositions[state.playerY][state.playerX] = PLAYER;
-=======
   sprintf(textBuffer, "%02d", state.lives);
   drawText(textBuffer, 2, viewportX + (12 + 3.5 + 6) * CELL_WIDTH, viewportY,
            0);
@@ -165,7 +123,6 @@ void drawGuiValues() {
   formatTimeLeft(state.timeLeft, textBuffer);
   drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, viewportY, 0);
 }
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
 
 void drawGuiLabels() {
   drawText("score ", 6, viewportX, viewportY, 0);
@@ -174,105 +131,12 @@ void drawGuiLabels() {
 }
 
 int clamp(int val, int min, int max) {
-<<<<<<< HEAD
-  if (val > max)
-    return max;
-  if (val < min)
-    return min;
-  return val;
-}
-
-int randomNumber(int min, int max) { return rand() % (max + 1 - min) + min; }
-
-void generateRandomMap() {
-  initGame();
-
-  state.playerY = 2;
-  state.playerX = 0;
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
-
-  int allowedMovable = 100;
-  int allowedStatic = 50;
-  int y = 1;
-  while (y < MAP_HEIGHT) {
-
-    int x = 1;
-    int laneWidth = 0;
-    while (x < MAP_WIDTH - 4) {
-      int cellVal = randomNumber(0, 5);
-      if (cellVal == 1 && allowedMovable > 0) {
-        state.objectPositions[y][x] = MOVINGOBSTACLE;
-        allowedMovable -= 1;
-      }
-      addObstacle(x);
-      x++;
-      if (laneWidth == 6) {
-        int xCopy = x;
-        x += 3;
-        while (xCopy < x) {
-          cellVal = randomNumber(0, 5);
-          if (cellVal == 1 && allowedStatic > 0) {
-            state.objectPositions[y][xCopy] = STATICOBSTACLE;
-            allowedStatic -= 1;
-          }
-
-          xCopy++;
-        }
-        laneWidth = 0;
-      }
-      laneWidth++;
-    }
-
-    y += 2;
-  }
-
-  // y = 0;
-  // while (y < MAP_HEIGHT) {
-  //   int x = 8;
-  //   while (x < MAP_WIDTH - 2) {
-  //     int cellVal = randomNumber(0, 5);
-  //     if (cellVal == 1 && allowedStatic > 0) {
-  //       state.objectPositions[y][x] = STATICOBSTACLE;
-  //       allowedStatic -= 1;
-  //     }
-  //     x += 6;
-  //   }
-  //   y++;
-  // }
-}
-
-void moveMovable(int yStart) {
-  int playerCollision = 0;
-  for (int y = yStart; y < MAP_HEIGHT; y += 2) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      if (state.objectPositions[y][x] == MOVINGOBSTACLE) {
-        if (state.objectPositions[(y + 1) % MAP_HEIGHT][x] == PLAYER) {
-          playerCollision = 1;
-          break;
-        }
-        state.objectPositions[(y + 1) % MAP_HEIGHT][x] = MOVINGOBSTACLE;
-        state.objectPositions[y][x] = BACKGROUND;
-      }
-      if (playerCollision) {
-        break;
-      }
-    }
-  }
-  if (playerCollision) {
-    state.lives = state.lives - 1;
-    generateRandomMap();
-  }
-}
-
-void update() {
-=======
   if (val >= max) return max;
   if (val <= min) return min;
   return val;
 }
 
 void updatePlayer() {
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
   state.objectPositions[state.playerY][state.playerX] = BACKGROUND;
 
   if (isButtonHeld(JOY_PAD_UP)) {
@@ -288,13 +152,9 @@ void updatePlayer() {
     state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
     state.playerDirection = MV_RIGHT;
   }
-  if (state.objectPositions[state.playerY][state.playerX] == MOVINGOBSTACLE ||state.objectPositions[state.playerY][state.playerX] == STATICOBSTACLE) {
-    state.lives = state.lives - 1;
-    generateRandomMap();
-  } else {
-    // Update player location in map
-    state.objectPositions[state.playerY][state.playerX] = PLAYER;
-  }
+
+  // Update player location in map
+  state.objectPositions[state.playerY][state.playerX] = PLAYER;
 }
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
@@ -355,7 +215,6 @@ void initGame() {
 }
 
 int main(int argc, char *argv[]) {
-  srand(time(NULL));
   fbinfo = initFbInfo();
   initGPIO();
   initSNES();
@@ -366,19 +225,6 @@ int main(int argc, char *argv[]) {
   // drawGuiLabels();
   setPlayerSpeed(1.5);
 
-<<<<<<< HEAD
-  generateRandomMap();
-  int yStart = 1;
-  double time = clock();
-  do {
-
-    // printMap();
-    // state.objectPositions [9][9] = RED;
-    drawGUI();
-    drawMap();
-
-    if ((double)(clock() - time) / CLOCKS_PER_SEC > 0.1) {
-=======
   double time = clock();
 
   while (!isButtonPressed(START)) {
@@ -388,17 +234,10 @@ int main(int argc, char *argv[]) {
     drawMenuScreen();
 
     if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
       // update method
-      moveMovable(yStart);
-      yStart = 1 - yStart;
       time = clock();
     }
 
-<<<<<<< HEAD
-    // drawMenuScreen();
-=======
->>>>>>> 7a30bd3bbb956435d6a5959da7c89297c7968baf
     readSNES();
     updatePlayer();
   }
