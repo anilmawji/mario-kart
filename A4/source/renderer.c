@@ -48,7 +48,7 @@ void drawFillRect(int posX, int posY, int width, int height, int bgcolor) {
 }
 
 //Rectangle outline
-void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize, int bgcolor, int strokeColor) {
+void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize, int strokeColor) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (x <= strokeSize || x >= width - strokeSize || y <= strokeSize ||
