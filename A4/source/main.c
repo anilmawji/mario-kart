@@ -42,7 +42,15 @@ typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
 
 // Used by objectPositions to determine the type of object occupying a cell
 // Cells marked as background are not occupied by an object
-enum cellType { BACKGROUND, PLAYER };
+enum cellType {
+  BACKGROUND,
+  PLAYER,
+  MOVINGOBSTACLE,
+  STATICOBSTACLE,
+  POWERUP1,
+  POWERUP2,
+  POWERUP3
+};
 
 struct GameState {
   int gameMap[MAP_HEIGHT][MAP_WIDTH];
@@ -82,6 +90,8 @@ void printMap() {
   printf("\n\n");
 }
 
+
+
 void drawMap() {
   int cellX, cellY;
 
@@ -93,7 +103,7 @@ void drawMap() {
       if (state.objectPositions[y][x] == BACKGROUND) {
         drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
                      state.gameMap[y][x]);
-      } else if (state.objectPositions[y][x] == PLAYER) {
+      } else {
         drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
                   CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
       }
@@ -105,6 +115,30 @@ void addObstacle(int x) {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     state.gameMap[y][x] = GREY;
   }
+}
+
+void initGame() {
+  mapX = viewportX;
+  mapY = viewportY + CELL_HEIGHT;
+
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    for (int x = 0; x < MAP_WIDTH; x++) {
+      state.gameMap[y][x] = GREEN;
+      state.objectPositions[y][x] = BACKGROUND;
+    }
+  }
+
+  addObstacle(4);
+  addObstacle(6);
+
+  state.playerX = 3;
+  state.playerY = MAP_HEIGHT / 2 - 1;
+  state.playerDirection = MV_RIGHT;
+  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
+  state.lives = 4;
+  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+
+  startTimer(state.timeLeft);
 }
 
 int calculateScore() {
@@ -136,6 +170,89 @@ int clamp(int val, int min, int max) {
   return val;
 }
 
+int randomNumber(int min, int max) { return rand() % (max + 1 - min) + min; }
+
+void generateRandomMap() {
+  initGame();
+
+  state.playerY = 2;
+  state.playerX = 0;
+  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+
+  int allowedMovable = 100;
+  int allowedStatic = 50;
+  int y = 1;
+  while (y < MAP_HEIGHT) {
+
+    int x = 1;
+    int laneWidth = 0;
+    while (x < MAP_WIDTH - 4) {
+      int cellVal = randomNumber(0, 5);
+      if (cellVal == 1 && allowedMovable > 0) {
+        state.objectPositions[y][x] = MOVINGOBSTACLE;
+        allowedMovable -= 1;
+      }
+      addObstacle(x);
+      x++;
+      if (laneWidth == 6) {
+        int xCopy = x;
+        x += 3;
+        while (xCopy < x) {
+          cellVal = randomNumber(0, 5);
+          if (cellVal == 1 && allowedStatic > 0) {
+            state.objectPositions[y][xCopy] = STATICOBSTACLE;
+            allowedStatic -= 1;
+          }
+
+          xCopy++;
+        }
+        laneWidth = 0;
+      }
+      laneWidth++;
+    }
+
+    y += 2;
+  }
+
+  // y = 0;
+  // while (y < MAP_HEIGHT) {
+  //   int x = 8;
+  //   while (x < MAP_WIDTH - 2) {
+  //     int cellVal = randomNumber(0, 5);
+  //     if (cellVal == 1 && allowedStatic > 0) {
+  //       state.objectPositions[y][x] = STATICOBSTACLE;
+  //       allowedStatic -= 1;
+  //     }
+  //     x += 6;
+  //   }
+  //   y++;
+  // }
+}
+
+void moveMovable(int yStart) {
+  int playerCollision = 0;
+  for (int y = yStart; y < MAP_HEIGHT; y += 2) {
+    for (int x = 0; x < MAP_WIDTH; x++) {
+      if (state.objectPositions[y][x] == MOVINGOBSTACLE) {
+        if (state.objectPositions[(y + 1) % MAP_HEIGHT][x] == PLAYER) {
+          playerCollision = 1;
+          break;
+        }
+        state.objectPositions[(y + 1) % MAP_HEIGHT][x] = MOVINGOBSTACLE;
+        state.objectPositions[y][x] = BACKGROUND;
+      }
+      if (playerCollision) {
+        break;
+      }
+    }
+  }
+  if (playerCollision) {
+    state.lives = state.lives - 1;
+    generateRandomMap();
+  }
+}
+
+
 void updatePlayer() {
   state.objectPositions[state.playerY][state.playerX] = BACKGROUND;
 
@@ -152,9 +269,13 @@ void updatePlayer() {
     state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
     state.playerDirection = MV_RIGHT;
   }
-
-  // Update player location in map
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+  if (state.objectPositions[state.playerY][state.playerX] == MOVINGOBSTACLE ||state.objectPositions[state.playerY][state.playerX] == STATICOBSTACLE) {
+    state.lives = state.lives - 1;
+    generateRandomMap();
+  } else {
+    // Update player location in map
+    state.objectPositions[state.playerY][state.playerX] = PLAYER;
+  }
 }
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
@@ -190,31 +311,10 @@ void drawMenuScreen() {
                  (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY, BLUE);
 }
 
-void initGame() {
-  mapX = viewportX;
-  mapY = viewportY + CELL_HEIGHT;
 
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      state.gameMap[y][x] = GREEN;
-      state.objectPositions[y][x] = BACKGROUND;
-    }
-  }
-
-  addObstacle(4);
-  addObstacle(6);
-
-  state.playerX = 3;
-  state.playerY = MAP_HEIGHT / 2 - 1;
-  state.playerDirection = MV_RIGHT;
-  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
-  state.lives = 4;
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
-
-  startTimer(state.timeLeft);
-}
 
 int main(int argc, char *argv[]) {
+   srand(time(NULL));
   fbinfo = initFbInfo();
   initGPIO();
   initSNES();
@@ -226,15 +326,19 @@ int main(int argc, char *argv[]) {
   setPlayerSpeed(1.5);
 
   double time = clock();
+  generateRandomMap();
+  int yStart = 1;
 
   while (!isButtonPressed(START)) {
     // printMap();
-    // drawGuiValues();
-    //drawMap();
-    drawMenuScreen();
+    drawGuiValues();
+    drawMap();
+    // drawMenuScreen();
 
     if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
       // update method
+      moveMovable(yStart);
+      yStart = 1 - yStart;
       time = clock();
     }
 
