@@ -15,6 +15,7 @@
 #include <font.h>
 #include <gpio.h>
 #include <mario.h>
+#include <bowser.h>
 #include <menuassets.h>
 #include <renderer.h>
 #include <stdio.h>
@@ -76,6 +77,8 @@ short int *marioSprites[] = {
 short int *menuBackground = (short int *)menu_background.pixel_data;
 short int *menuTitle = (short int *)menu_title.pixel_data;
 
+short int *bowserSprite = (short int *)bowser.pixel_data;
+
 void printMap() {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
@@ -104,8 +107,16 @@ void drawMap() {
         drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
                      state.gameMap[y][x]);
       } else {
-        drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
+        if(state.objectPositions[y][x] == MOVINGOBSTACLE || state.objectPositions[y][x] == STATICOBSTACLE){
+          drawImage(bowserSprite, cellX, cellY, CELL_WIDTH,
                   CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
+        }else{
+          drawImage(marioSprites[state.playerDirection], cellX, cellY, CELL_WIDTH,
+                  CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
+        }
+
+
+        
       }
     }
   }
@@ -117,10 +128,7 @@ void addObstacle(int x) {
   }
 }
 
-void initGame() {
-  mapX = viewportX;
-  mapY = viewportY + CELL_HEIGHT;
-
+void resetGameArrays(){
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
       state.gameMap[y][x] = GREEN;
@@ -128,6 +136,14 @@ void initGame() {
     }
   }
 
+}
+
+void initGame() {
+  mapX = viewportX;
+  mapY = viewportY + CELL_HEIGHT;
+
+  resetGameArrays();
+  
   addObstacle(4);
   addObstacle(6);
 
@@ -173,7 +189,7 @@ int clamp(int val, int min, int max) {
 int randomNumber(int min, int max) { return rand() % (max + 1 - min) + min; }
 
 void generateRandomMap() {
-  initGame();
+  resetGameArrays();
 
   state.playerY = 2;
   state.playerX = 0;
@@ -247,7 +263,7 @@ void moveMovable(int yStart) {
     }
   }
   if (playerCollision) {
-    state.lives = state.lives - 1;
+    state.lives--;
     generateRandomMap();
   }
 }
@@ -270,7 +286,8 @@ void updatePlayer() {
     state.playerDirection = MV_RIGHT;
   }
   if (state.objectPositions[state.playerY][state.playerX] == MOVINGOBSTACLE ||state.objectPositions[state.playerY][state.playerX] == STATICOBSTACLE) {
-    state.lives = state.lives - 1;
+    state.lives --;
+    
     generateRandomMap();
   } else {
     // Update player location in map
@@ -331,11 +348,12 @@ int main(int argc, char *argv[]) {
 
   while (!isButtonPressed(START)) {
     // printMap();
+    // state.lives--;
     drawGuiValues();
     drawMap();
     // drawMenuScreen();
 
-    if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
+    if ((double)(clock() - time) / CLOCKS_PER_SEC > 0.5) {
       // update method
       moveMovable(yStart);
       yStart = 1 - yStart;
