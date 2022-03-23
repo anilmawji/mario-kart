@@ -34,7 +34,7 @@ void clearScreen();
 void drawFillRect(int posX, int posY, int width, int height, int color);
 
 void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize,
-                    int bgcolor, int strokeColor);
+                    int strokeColor);
 
 void drawImage(short int *pixelData, int posX, int posY, int width, int height,
                int oldBgColor, int newBgColor);

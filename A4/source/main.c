@@ -44,6 +44,8 @@ typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
 // Cells marked as background are not occupied by an object
 enum cellType { BACKGROUND, PLAYER };
 
+enum menuButtons { START_BTN, QUIT_BTN };
+
 struct GameState {
   int gameMap[MAP_HEIGHT][MAP_WIDTH];
   int objectPositions[MAP_HEIGHT][MAP_WIDTH];
@@ -160,36 +162,6 @@ void updatePlayer() {
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
 
-//TODO
-void drawMenuButton(int buttonIndex, char* text) {
-
-}
-
-void drawMenuScreen() {
-  // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
-
-  int titleX;
-
-  drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
-            mapY, menu_title.width, menu_title.height, WHITE, BLACK);
-
-  int startBtnX = viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2;
-  int startBtnY = viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2;
-  
-  int quitBtnX = viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2;
-  int quitBtnY =
-      viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 3 * CELL_HEIGHT;
-
-  drawText("start", 5, startBtnX, startBtnY, 0);
-  drawText("quit", 4, quitBtnX, quitBtnY, 0);
-
-  drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
-                 (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY, BLUE);
-
-  drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
-                 (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY, BLUE);
-}
-
 void initGame() {
   mapX = viewportX;
   mapY = viewportY + CELL_HEIGHT;
@@ -211,27 +183,21 @@ void initGame() {
   state.lives = 4;
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
 
-  startTimer(state.timeLeft);
+  setPlayerSpeed(1.5);
 }
 
-int main(int argc, char *argv[]) {
-  fbinfo = initFbInfo();
-  initGPIO();
-  initSNES();
-  initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-  initGame();
+void runGame() {
+  startTimer(state.timeLeft);
 
   clearScreen();
-  // drawGuiLabels();
-  setPlayerSpeed(1.5);
+  drawGuiLabels();
 
   double time = clock();
 
   while (!isButtonPressed(START)) {
     // printMap();
-    // drawGuiValues();
-    //drawMap();
-    drawMenuScreen();
+    drawGuiValues();
+    drawMap();
 
     if ((double)(clock() - time) / CLOCKS_PER_SEC > 1) {
       // update method
@@ -241,6 +207,81 @@ int main(int argc, char *argv[]) {
     readSNES();
     updatePlayer();
   }
+}
+
+int menuSelection = START_BTN;
+
+// TODO
+void drawMenuButton(int buttonIndex, char *text) {}
+
+void drawMenuScreen() {
+  // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
+
+  drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
+            mapY, menu_title.width, menu_title.height, WHITE, GREY);
+
+  int startBtnX = viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2;
+  int startBtnY = viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2;
+
+  int quitBtnX = viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2;
+  int quitBtnY =
+      viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 3 * CELL_HEIGHT;
+
+  drawText("start", 5, startBtnX, startBtnY, GREY);
+  drawText("quit", 4, quitBtnX, quitBtnY, GREY);
+
+  if (menuSelection == START_BTN) {
+    drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
+                   (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, RED);
+    drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
+                   (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY);
+  } else if (menuSelection == QUIT_BTN) {
+    drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
+                   (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, RED);
+    drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
+                   (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY);
+  }
+
+  drawText("Made by Anil Mawji and Umar Hassan", 34,
+           viewportX + (VIEWPORT_WIDTH - 34 * CELL_WIDTH) / 2,
+           viewportY + VIEWPORT_HEIGHT - 2 * CELL_HEIGHT, GREY);
+}
+
+void updateButtonSelection() {
+  if (isButtonPressed(JOY_PAD_UP) && menuSelection == QUIT_BTN) {
+    menuSelection = START_BTN;
+  } else if (isButtonPressed(JOY_PAD_DOWN) && menuSelection == START_BTN) {
+    menuSelection = QUIT_BTN;
+  }
+}
+
+void viewMenu() {
+  clearScreen();
+  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREY);
+
+  while (!isButtonPressed(A)) {
+    updateButtonSelection();
+    drawMenuScreen();
+    readSNES();
+  }
+  // User pressed A
+  if (menuSelection == START_BTN) {
+    runGame();
+  } else if (menuSelection == QUIT_BTN) {
+    clearScreen();
+    exit(0);
+  }
+}
+
+int main(int argc, char *argv[]) {
+  fbinfo = initFbInfo();
+  initGPIO();
+  initSNES();
+
+  initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  initGame();
+
+  viewMenu();
 
   // Deallocate memory
   cleanUpRenderer();
