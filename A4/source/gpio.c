@@ -1,5 +1,5 @@
 #include <fcntl.h>
-#include <gpio.h>
+#include "gpio.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>

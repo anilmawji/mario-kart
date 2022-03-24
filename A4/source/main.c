@@ -10,20 +10,20 @@
  *   UCID: 30099809
  */
 
-#include <bowser.h>
-#include <controller.h>
+#include "bowser.h"
+#include "controller.h"
+#include "font.h"
+#include "gpio.h"
+#include "mario.h"
+#include "menuassets.h"
+#include "renderer.h"
+#include "timer.h"
 #include <fcntl.h>
-#include <font.h>
-#include <gpio.h>
-#include <mario.h>
-#include <menuassets.h>
-#include <renderer.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <time.h>
-#include <timer.h>
 #include <unistd.h>
 #include <wiringPi.h>
 
@@ -66,7 +66,7 @@ struct GameState {
   Timer timeLeft;
   int win;
   int lose;
-    double powerUpShowTime;
+  double powerUpShowTime;
 } state;
 
 int mapX, mapY;
@@ -112,13 +112,16 @@ void drawMap() {
             state.objectPositions[y][x] == STATICOBSTACLE) {
           drawImage(bowserSprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
                     TRANSPARENT, state.gameMap[y][x]);
-        } else if (state.objectPositions [y][x] == POWERUP1 ||state.objectPositions [y][x] == POWERUP2 || state.objectPositions [y][x] == POWERUP3) {
-          if((double)(clock() - state.powerUpShowTime) / CLOCKS_PER_SEC > 5){
-             drawImage(marioSprites[state.playerDirection], cellX, cellY,
-                    CELL_WIDTH, CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
-          }else {
-             drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                     state.gameMap[y][x]);
+        } else if (state.objectPositions[y][x] == POWERUP1 ||
+                   state.objectPositions[y][x] == POWERUP2 ||
+                   state.objectPositions[y][x] == POWERUP3) {
+          if ((double)(clock() - state.powerUpShowTime) / CLOCKS_PER_SEC > 5) {
+            drawImage(marioSprites[state.playerDirection], cellX, cellY,
+                      CELL_WIDTH, CELL_HEIGHT, TRANSPARENT,
+                      state.gameMap[y][x]);
+          } else {
+            drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+                         state.gameMap[y][x]);
           }
         } else {
           drawImage(marioSprites[state.playerDirection], cellX, cellY,
@@ -156,16 +159,13 @@ void initGame() {
   state.playerX = 3;
   state.playerY = MAP_HEIGHT / 2 - 1;
   state.playerDirection = MV_RIGHT;
-  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
+  state.timeLeft.secondsAllowed = 3 * 60; // seconds
   state.lives = 4;
   state.objectPositions[state.playerY][state.playerX] = PLAYER;
-  state.powerUpShowTime = clock();
-
-  startTimer(state.timeLeft);
 }
 
 int calculateScore() {
-  return (timerMillisElapsed(state.timeLeft) / 1000 + state.lives) *
+  return (timerSecondsLeft(state.timeLeft) + state.lives) *
          SCORE_CONST;
 }
 
@@ -188,13 +188,14 @@ void drawGuiLabels() {
 }
 
 int clamp(int val, int min, int max) {
-  if (val >= max) return max;
-  if (val <= min) return min;
+  if (val >= max)
+    return max;
+  if (val <= min)
+    return min;
   return val;
 }
 
 int randomNumber(int min, int max) { return rand() % (max + 1 - min) + min; }
-
 
 void generateRandomMap() {
   resetGameArrays();
@@ -224,7 +225,7 @@ void generateRandomMap() {
         while (xCopy < x) {
           cellVal = randomNumber(0, 10);
           if (allowedStatic > 0) {
-            if (cellVal == 1 || cellVal == 5 || cellVal == 6 ) {
+            if (cellVal == 1 || cellVal == 5 || cellVal == 6) {
               state.objectPositions[y][xCopy] = STATICOBSTACLE;
               allowedStatic -= 1;
             }
@@ -368,8 +369,15 @@ void updateButtonSelection() {
   }
 }
 
+int powerupsLoaded = FALSE;
+
 void runGame() {
   startTimer(state.timeLeft);
+
+  if (!powerupsLoaded) {
+    state.powerUpShowTime = clock();
+    powerupsLoaded = TRUE;
+  }
 
   clearScreen();
   drawGuiLabels();
@@ -430,41 +438,3 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
-
-// int main(int argc, char* argv[]) {
-//   initGPIO();
-//   initSNES();
-
-//   printf("Created by Umar Hassan and Anil Mawji\n\n");
-
-//   int waiting = FALSE;
-//   int shouldPrint = TRUE;
-
-//   do {
-//     readSNES();
-//     waiting = TRUE;
-
-//     // Loop through each controller button
-//     for (int i = 0; i < NUM_REAL_BUTTONS; i++) {
-//       if (isButtonPressed(i)) {
-//         printf("You have pressed: %s\n\n", getButtonName(i));
-//         waiting = FALSE;
-//         // Only print again after having pressed a button, ensuring that we
-//         // don't print two times in a row
-//         shouldPrint = TRUE;
-//       }
-//     }
-
-//     if (waiting && shouldPrint && secondsSinceLastButtonPress() > 0.75) {
-//       printf("Please press a button...\n\n");
-//       shouldPrint = FALSE;
-//     }
-//   } while (!isButtonPressed(START));
-
-//   printf("Program is terminating...\n\n");
-
-//   return 0;
-// }
-
-

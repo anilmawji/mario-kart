@@ -14,4 +14,6 @@ void formatTimeLeft(Timer time, char *str);
 
 int isTimerFinished(Timer time);
 
+double timerSecondsLeft(Timer time);
+
 double timeDiff(Timer time);
