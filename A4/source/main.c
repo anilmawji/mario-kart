@@ -253,8 +253,8 @@ int calculateScore() {
   return (timerSecondsLeft(state.timeLeft) + state.lives) * SCORE_CONST;
 }
 
-void drawGuiValues() {
-  sprintf(textBuffer, "%04d", calculateScore());
+void drawGuiValues(int score) {
+  sprintf(textBuffer, "%04d", score);
   drawText(textBuffer, 4, viewportX + 6 * CELL_WIDTH, viewportY, 0);
 
   sprintf(textBuffer, "%02d", state.lives);
@@ -290,18 +290,18 @@ void runGame() {
   drawInitialGameMap(&state.gameMap);
   startTimer(state.timeLeft);
 
-  int finalScore;
+  int score;
 
   while (!isButtonPressed(START) && !state.win && !state.lose) {
     // printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
     updateMovingObstacles();
-    drawGuiValues();
+    score = calculateScore();
+    drawGuiValues(score);
 
     if (checkLevelWin()) {
       if (state.currentLevel == 4) {
-        finalScore = calculateScore();
         state.win = TRUE;
       } else {
         state.currentLevel++;
@@ -314,14 +314,13 @@ void runGame() {
         drawGameMapObject(&state.gameMap, &player);
       }
     } else if (checkLoss()) {
-      finalScore = calculateScore();
       state.lose = TRUE;
     }
   }
   if (state.win) {
-    drawGameFinishedScreen("you win", 7, finalScore);
+    drawGameFinishedScreen("you win", 7, score);
   } else if (state.lose) {
-    drawGameFinishedScreen("game over", 9, finalScore);
+    drawGameFinishedScreen("game over", 9, score);
   }
 }
 
