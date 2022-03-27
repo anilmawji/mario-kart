@@ -38,8 +38,9 @@
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
 #define MAX_STATIC_OBSTACLES 100
 #define MAX_MOVING_OBSTACLES 50
+#define MAX_VALUE_PACKS 6
 
-enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE };
+enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, VALUE_PACK };
 
 struct GameState {
   struct GameMap gameMap;
@@ -50,13 +51,15 @@ struct GameState {
   struct GameObject staticObstacles[MAX_STATIC_OBSTACLES];
   int numStatic;
 
+  struct GameObject valuePacks[MAX_VALUE_PACKS];
+  int numValue;
+
   Timer timeLeft;
   int lives;
   int win;
   int lose;
-
-  float powerUpShowTime;
   int currentLevel;
+  float powerUpAddTime;
 
 } state;
 
@@ -86,12 +89,6 @@ void addMovingObstacle(struct GameObject* obj, int x) {
   obj->lastUpdateTime = clock();
 }
 
-void addStaticObstacle(struct GameObject* obj, int x, int y) {
-  initGameObject(obj, x, y, MOVING_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
-                 0);
-  addGameObject(&state.gameMap, obj);
-}
-
 void addFinishLine() {
   int black = TRUE;
 
@@ -111,27 +108,39 @@ void addFinishLine() {
 void generateRandomMap() {
   int numMoving = 0;
   int numStatic = 0;
+  int numValue = 0;
   int chance;
+  int prevX;
 
   srand(time(0));
 
   for (int x = 3; x < MAP_WIDTH - 3; x++) {
-    chance = rand() % 4;
-    if (chance >= 1 && numMoving + 1 < MAX_MOVING_OBSTACLES) {
+    chance = rand() % 5;
+    if (chance >= 2 && numMoving + 1 < MAX_MOVING_OBSTACLES) {
       addMovingObstacle(&state.movingObstacles[numMoving], x);
       numMoving++;
-    } else if (numStatic + 1 < MAX_STATIC_OBSTACLES) {
+    } else if (chance >= 1 && numStatic + 1 < MAX_STATIC_OBSTACLES) {
       for (int y = 0; y < MAP_HEIGHT; y++) {
-        chance = rand() % 4;
-        if (chance == 1) {
-          addStaticObstacle(&state.staticObstacles[numStatic], x, y);
+        chance = rand() % 10;
+        if (chance <= 3) {
+          initGameObject(&state.staticObstacles[numStatic], x, y,
+                         STATIC_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
+                         0);
+          addGameObject(&state.gameMap, &state.staticObstacles[numStatic]);
           numStatic++;
+        } else if (chance <= 4 && prevX != x && x >= 3 &&
+                   numValue < MAX_VALUE_PACKS) {
+          initGameObject(&state.valuePacks[numValue], x, y, VALUE_PACK,
+                         marioSprites[MV_DOWN], TRANSPARENT, MV_DOWN, 0);
+          numValue++;
+          prevX = x;
         }
       }
     }
   }
   state.numMoving = numMoving;
   state.numStatic = numStatic;
+  state.numValue = numValue;
 
   addFinishLine();
 }
@@ -142,7 +151,7 @@ void respawnPlayer() {
   state.gameMap.objectMap[player.posY][player.posX] = -1;
   player.posX = PLAYER_START_X;
   player.posY = PLAYER_START_Y;
-  state.gameMap.objectMap[player.posY][player.posX] = player.index;
+  state.gameMap.objectMap[player.posY][player.posX] = player.id;
   state.lives--;
 
   drawGameMapObject(&state.gameMap, &player);
@@ -176,14 +185,14 @@ int updateGameObject(struct GameObject* obj) {
         obj->prevPosY = obj->posY;
         state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
         obj->posY = 0;
-        state.gameMap.objectMap[obj->posY][obj->posX] = obj->index;
+        state.gameMap.objectMap[obj->posY][obj->posX] = obj->id;
       } else {
         obj->prevPosX = obj->posX;
         obj->prevPosY = obj->posY;
         state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
         obj->posX = newX;
         obj->posY = newY;
-        state.gameMap.objectMap[obj->posY][obj->posX] = obj->index;
+        state.gameMap.objectMap[obj->posY][obj->posX] = obj->id;
       }
       return TRUE;
     }
@@ -231,8 +240,12 @@ int updatePlayer() {
   }
 
   if (newX != player.posX || newY != player.posY) {
-    if (state.gameMap.objectMap[newY][newX] != -1) {
+    int objId = state.gameMap.objectMap[newY][newX];
+
+    if (objId == MOVING_OBSTACLE || objId == STATIC_OBSTACLE) {
       respawnPlayer();
+    } else if (objId == VALUE_PACK) {
+      // removeGameObject();
     } else {
       player.sprite = marioSprites[player.dir];
       player.prevPosX = player.posX;
@@ -240,7 +253,7 @@ int updatePlayer() {
       state.gameMap.objectMap[player.prevPosY][player.prevPosX] = -1;
       player.posX = newX;
       player.posY = newY;
-      state.gameMap.objectMap[player.posY][player.posX] = player.index;
+      state.gameMap.objectMap[player.posY][player.posX] = player.id;
 
       drawGameMapObject(&state.gameMap, &player);
     }
@@ -291,6 +304,7 @@ void runGame() {
   startTimer(state.timeLeft);
 
   int score;
+  int valuePacksAdded = FALSE;
 
   while (!isButtonPressed(START) && !state.win && !state.lose) {
     // printGameMap(&state.gameMap);
@@ -299,6 +313,16 @@ void runGame() {
     updateMovingObstacles();
     score = calculateScore();
     drawGuiValues(score);
+
+    // Add value packs to the map 10 seconds after the game starts
+    if (!valuePacksAdded &&
+        (double)(clock() - state.powerUpAddTime) / CLOCKS_PER_SEC >= 10) {
+      for (int i = 0; i < state.numValue; i++) {
+        addGameObject(&state.gameMap, &state.valuePacks[i]);
+        drawGameMapObject(&state.gameMap, &state.valuePacks[i]);
+      }
+      valuePacksAdded = TRUE;
+    }
 
     if (checkLevelWin()) {
       if (state.currentLevel == 4) {
@@ -312,6 +336,9 @@ void runGame() {
 
         setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
         drawGameMapObject(&state.gameMap, &player);
+
+        valuePacksAdded = FALSE;
+        state.powerUpAddTime = clock();
       }
     } else if (checkLoss()) {
       state.lose = TRUE;
@@ -319,9 +346,14 @@ void runGame() {
   }
   if (state.win) {
     drawGameFinishedScreen("you win", 7, score);
+    state.win = FALSE;
   } else if (state.lose) {
     drawGameFinishedScreen("game over", 9, score);
+    state.lose = FALSE;
   }
+  state.currentLevel = 1;
+  valuePacksAdded = FALSE;
+
 }
 
 void viewMenu() {
@@ -354,6 +386,7 @@ void initGame() {
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
   state.lives = 4;
   state.currentLevel = 1;
+  state.powerUpAddTime = clock();
 }
 
 int main(int argc, char* argv[]) {

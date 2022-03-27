@@ -33,12 +33,6 @@ void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor) {
   clearGameMap(map, MAP_WIDTH, MAP_HEIGHT, defaultColor);
 }
 
-void updateGameMapObject(struct GameMap* map, struct GameObject* obj) {
-  map->objectMap[obj->posY][obj->posX] = -1;
-  updateGameObject(obj);
-  map->objectMap[obj->posY][obj->posX] = obj->index;
-}
-
 void addGameObject(struct GameMap* map, struct GameObject* obj) {
   if (map->numObjects + 1 > MAX_OBJECTS) {
     fprintf(stderr, "Failed to add game object; maximum reached\n");
@@ -46,7 +40,7 @@ void addGameObject(struct GameMap* map, struct GameObject* obj) {
   }
   obj->index = map->numObjects;
   map->objects[obj->index] = obj;
-  map->objectMap[obj->posY][obj->posX] = obj->index;
+  map->objectMap[obj->posY][obj->posX] = obj->id;
   map->numObjects++;
 }
 
@@ -90,6 +84,7 @@ void printObjectMap(struct GameMap* map) {
   printf("\n\n");
 }
 
+// TODO: Split into 2 functions, erase and draw
 void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
   int cellX = map->posX + obj->prevPosX * CELL_WIDTH;
   int cellY = map->posY + obj->prevPosY * CELL_HEIGHT;
@@ -109,24 +104,27 @@ void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
 void drawInitialGameMap(struct GameMap* map) {
   int cellX;
   int cellY;
-  int objIndex;
-  struct GameObject* obj;
 
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      cellX = map->posX + x * CELL_WIDTH;
-      cellY = map->posY + y * CELL_HEIGHT;
-      objIndex = map->objectMap[y][x];
+      if (map->objectMap[y][x] == -1) {
+        cellX = map->posX + x * CELL_WIDTH;
+        cellY = map->posY + y * CELL_HEIGHT;
 
-      if (objIndex == -1) {
         drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
                      map->backgroundMap[y][x]);
-      } else {
-        obj = map->objects[objIndex];
-
-        drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                  obj->spriteBgColor, map->backgroundMap[y][x]);
       }
     }
+  }
+
+  struct GameObject* obj;
+
+  for (int i = 0; i < map->numObjects; i++) {
+    obj = map->objects[i];
+    cellX = map->posX + obj->posX * CELL_WIDTH;
+    cellY = map->posY + obj->posY * CELL_HEIGHT;
+
+    drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+              obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
   }
 }
