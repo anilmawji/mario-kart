@@ -2,6 +2,8 @@
     "makefile.extensionOutputFolder": "./.vscode",
     "files.associations": {
         "framebuffer.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "stdlib.h": "c",
+        "menuassets.h": "c"
     }
 }

@@ -2,8 +2,8 @@ enum menuButtons { START_BTN, QUIT_BTN };
 
 int menuSelection;
 
+void drawInitialMenuScreen();
+
 void updateMenuScreen();
 
-void drawMenuScreen();
-
-void initMenuScreen();
+void initMenuScreen(int x, int y, int width, int height);

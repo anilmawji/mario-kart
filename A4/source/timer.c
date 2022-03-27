@@ -6,6 +6,10 @@
 
 void startTimer(Timer time) { time.start = clock(); }
 
+void stopTimer(Timer time) {
+  
+}
+
 double timerSecondsElapsed(Timer time) {
   return (double)(clock() - time.start) / CLOCKS_PER_SEC;
 }

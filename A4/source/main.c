@@ -271,12 +271,26 @@ void drawGuiLabels() {
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
-void runGame() {
-  startTimer(state.timeLeft);
+void drawGameFinishedScreen(char* text, int length, int finalScore) {
+  drawFillRect(viewportX + (VIEWPORT_WIDTH - 20 * CELL_WIDTH) / 2,
+               viewportY + (VIEWPORT_HEIGHT - 8 * CELL_HEIGHT) / 2,
+               20 * CELL_WIDTH, 8 * CELL_HEIGHT, BLACK);
 
+  drawText(text, length, viewportX + (VIEWPORT_WIDTH - length * CELL_WIDTH) / 2,
+           viewportY + (VIEWPORT_HEIGHT - 4 * CELL_HEIGHT) / 2, BLACK);
+
+  sprintf(textBuffer, "final score %04d", finalScore);
+  drawText(textBuffer, 16, viewportX + (VIEWPORT_WIDTH - 16 * CELL_WIDTH) / 2,
+           viewportY + (VIEWPORT_HEIGHT + CELL_HEIGHT) / 2, BLACK);
+}
+
+void runGame() {
   clearScreen();
   drawGuiLabels();
   drawInitialGameMap(&state.gameMap);
+  startTimer(state.timeLeft);
+
+  int finalScore;
 
   while (!isButtonPressed(START) && !state.win && !state.lose) {
     // printGameMap(&state.gameMap);
@@ -287,6 +301,7 @@ void runGame() {
 
     if (checkLevelWin()) {
       if (state.currentLevel == 4) {
+        finalScore = calculateScore();
         state.win = TRUE;
       } else {
         state.currentLevel++;
@@ -299,29 +314,24 @@ void runGame() {
         drawGameMapObject(&state.gameMap, &player);
       }
     } else if (checkLoss()) {
+      finalScore = calculateScore();
       state.lose = TRUE;
     }
   }
-  drawFillRect(viewportX + (VIEWPORT_WIDTH - 16 * CELL_WIDTH) / 2,
-               viewportY + (VIEWPORT_HEIGHT - 6 * CELL_HEIGHT) / 2,
-               16 * CELL_WIDTH, 6 * CELL_HEIGHT, BLACK);
   if (state.win) {
-    drawText("you win", 7, viewportX + (VIEWPORT_WIDTH - 7 * CELL_WIDTH) / 2,
-             viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, BLACK);
+    drawGameFinishedScreen("you win", 7, finalScore);
   } else if (state.lose) {
-    drawText("game over", 9, viewportX + (VIEWPORT_WIDTH - 9 * CELL_WIDTH) / 2,
-             viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, BLACK);
+    drawGameFinishedScreen("game over", 9, finalScore);
   }
 }
 
 void viewMenu() {
   clearScreen();
-  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREEN);
+  drawInitialMenuScreen();
 
   while (!isButtonPressed(A)) {
     readSNES();
     updateMenuScreen();
-    drawMenuScreen();
   }
   // User pressed A
   if (menuSelection == START_BTN) {
@@ -351,7 +361,7 @@ int main(int argc, char* argv[]) {
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGPIO();
   initSNES();
-  initMenuScreen();
+  initMenuScreen(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGame();
 
   viewMenu();
