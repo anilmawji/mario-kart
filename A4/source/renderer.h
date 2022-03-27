@@ -6,7 +6,7 @@ Pixel *pixel;
 int viewportX;
 int viewportY;
 
-typedef struct {
+struct SpriteSheet {
   short int *pixelData;
   int width;
   int height;
@@ -17,7 +17,7 @@ typedef struct {
   int paddingX;
   int paddingY;
   int backgroundColor;
-} SpriteSheet;
+};
 
 void clearScreen();
 
@@ -33,13 +33,17 @@ void drawCroppedImage(short int *pixelData, int posX, int posY, int oldWidth,
                       int oldHeight, int startX, int startY, int endX, int endY,
                       int oldBgColor, int newBgColor);
 
-void drawSpriteSheet(SpriteSheet sheet, int posX, int posY);
+void drawSpriteSheet(struct SpriteSheet* sheet, int posX, int posY);
 
-void drawSprite(SpriteSheet sheet, int posX, int posY, int width, int height,
-                int startX, int startY, int newBgColor);
+void drawSprite(struct SpriteSheet *sheet, int posX, int posY, int width,
+                int height, int startX, int startY, int newBgColor);
 
-void drawSpriteTile(SpriteSheet sheet, int posX, int posY, int tileX, int tileY,
-                    int newBgColor);
+void drawSpriteTile(struct SpriteSheet *sheet, int posX, int posY, int tileX,
+                    int tileY, int newBgColor);
+
+void initSpriteSheet(struct SpriteSheet *sheet, short *pixelData, int width,
+                     int height, int rows, int cols, int tileWidth,
+                     int tileHeight, int paddingX, int paddingY, int bgColor);
 
 void drawText(char *text, int length, int posX, int posY, int bgColor);
 

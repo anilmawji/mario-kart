@@ -28,10 +28,10 @@
 #include "gpio.h"
 #include "marioassets.h"
 #include "menu.h"
+#include "objectassets.h"
 #include "renderer.h"
 #include "timer.h"
 #include "utils.h"
-#include "valuepack.h"
 
 #define BUFFER_SIZE 20
 #define SCORE_CONST 10
@@ -79,6 +79,8 @@ short* marioSprites[] = {
 short* bowserSprite = (short*)bowser_down.pixel_data;
 short* valuepackSprite = (short*)value_pack.pixel_data;
 
+struct SpriteSheet plantSprites;
+
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
 
@@ -117,6 +119,7 @@ void generateRandomMap() {
   int numValue = 0;
   int chance;
   int prevX;
+  struct GameObject* obj;
 
   srand(time(0));
 
@@ -129,10 +132,12 @@ void generateRandomMap() {
       for (int y = 0; y < MAP_HEIGHT; y++) {
         chance = rand() % 10;
         if (chance <= 3) {
-          initGameObject(&state.staticObstacles[numStatic], x, y,
-                         STATIC_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
-                         0);
-          addGameObject(&state.gameMap, &state.staticObstacles[numStatic]);
+          obj = &state.staticObstacles[numStatic];
+          initGameObject(obj, x, y, STATIC_OBSTACLE, (short*)plant.pixel_data,
+                         WHITE, MV_DOWN, 0);
+          addGameObject(&state.gameMap, obj);
+          obj->spriteSheet = &plantSprites;
+          obj->updateInterval = 0.4 + (rand() % 3) * 0.1;
           numStatic++;
         } else if (chance <= 4 && prevX != x && x >= 3 &&
                    numValue < MAX_VALUE_PACKS) {
@@ -221,6 +226,20 @@ void updateMovingObstacles() {
   }
 }
 
+void updateStaticObstacles() {
+  struct GameObject* obj;
+
+  for (int i = 0; i < state.numStatic; i++) {
+    obj = &state.staticObstacles[i];
+
+    if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC >
+        obj->updateInterval) {
+      drawAnimatedGameObject(&state.gameMap, obj);
+      obj->lastUpdateTime = clock();
+    }
+  }
+}
+
 int checkLoss() {
   return state.lives == 0 || timerSecondsLeft(state.timeLeft) <= 0;
 }
@@ -247,11 +266,6 @@ int updatePlayer() {
 
   if (newX != player.posX || newY != player.posY) {
     int objId = state.gameMap.objectMap[newY][newX];
-
-    if (state.valuePackEffect && (double)(clock() - state.valuePackSpeedTime) / CLOCKS_PER_SEC >= 6) {
-      setPlayerSpeed(PLAYER_DEFAULT_SPEED);
-      state.valuePackEffect = FALSE;
-    }
 
     if (objId == MOVING_OBSTACLE || objId == STATIC_OBSTACLE) {
       respawnPlayer();
@@ -337,6 +351,7 @@ void runGame() {
     readSNES();
     updatePlayer();
     updateMovingObstacles();
+    updateStaticObstacles();
     score = calculateScore();
     drawGuiValues(score);
 
@@ -348,6 +363,13 @@ void runGame() {
         drawGameMapObject(&state.gameMap, &state.valuePacks[i]);
       }
       valuePacksAdded = TRUE;
+    }
+
+    // Value pack speed effect
+    if (state.valuePackEffect &&
+        (double)(clock() - state.valuePackSpeedTime) / CLOCKS_PER_SEC >= 6) {
+      setPlayerSpeed(PLAYER_DEFAULT_SPEED);
+      state.valuePackEffect = FALSE;
     }
 
     if (checkLevelWin()) {
@@ -408,6 +430,9 @@ void initGame() {
   addGameObject(&state.gameMap, &player);
 
   generateRandomMap();
+
+  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, 64, 32, 1, 2, 32, 32,
+                  0, 0, WHITE);
 
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
   state.lives = 4;

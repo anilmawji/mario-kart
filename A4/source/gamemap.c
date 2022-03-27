@@ -101,6 +101,19 @@ void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
             obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
 }
 
+void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
+  int cellX = map->posX + obj->posX * CELL_WIDTH;
+  int cellY = map->posY + obj->posY * CELL_HEIGHT;
+
+  obj->animationFrame++;
+  if (obj->animationFrame > obj->spriteSheet->cols) {
+    obj->animationFrame = 0;
+  }
+
+  drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->animationFrame, 0,
+                 map->backgroundMap[obj->posY][obj->posX]);
+}
+
 void drawInitialGameMap(struct GameMap* map) {
   int cellX;
   int cellY;
@@ -121,10 +134,15 @@ void drawInitialGameMap(struct GameMap* map) {
 
   for (int i = 0; i < map->numObjects; i++) {
     obj = map->objects[i];
-    cellX = map->posX + obj->posX * CELL_WIDTH;
-    cellY = map->posY + obj->posY * CELL_HEIGHT;
 
-    drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-              obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
+    if (obj->spriteSheet == NULL) {
+      cellX = map->posX + obj->posX * CELL_WIDTH;
+      cellY = map->posY + obj->posY * CELL_HEIGHT;
+
+      drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+                obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
+    } else {
+      drawAnimatedGameObject(map, obj);
+    }
   }
 }

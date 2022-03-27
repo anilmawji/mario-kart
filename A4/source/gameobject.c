@@ -26,6 +26,9 @@ void initGameObject(struct GameObject* obj, int posX, int posY, int id,
   obj->spriteBgColor = spriteBgColor;
   obj->dir = dir;
   obj->speed = speed;
+  obj->spriteSheet = NULL;
+  obj->animationFrame = 0;
+  obj->updateInterval = 0.2;
 }
 
 void setGameObjectPos(struct GameObject* obj, int posX, int posY) {

@@ -24,6 +24,8 @@ void addGameObject(struct GameMap* map, struct GameObject* obj);
 
 void removeGameObject(struct GameMap* map, struct GameObject* obj);
 
+void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj);
+
 void updateGameMap(struct GameMap* map);
 
 void updateGameMapObject(struct GameMap* map, struct GameObject* obj);

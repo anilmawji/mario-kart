@@ -20,6 +20,9 @@ struct GameObject {
   int speed;
   float lastUpdateTime;  // Measured in milliseconds
   float updateInterval;
+
+  struct SpriteSheet* spriteSheet;
+  int animationFrame;
 };
 
 void initGameObject(struct GameObject* obj, int posX, int posY, int id,
