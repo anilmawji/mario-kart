@@ -137,7 +137,7 @@ void generateRandomMap() {
                          WHITE, MV_DOWN, 0);
           addGameObject(&state.gameMap, obj);
           obj->spriteSheet = &plantSprites;
-          obj->updateInterval = 0.4 + (rand() % 3) * 0.1;
+          obj->updateInterval = 0.4 + (rand() % 4) * 0.1;
           numStatic++;
         } else if (chance <= 4 && prevX != x && x >= 3 &&
                    numValue < MAX_VALUE_PACKS) {
@@ -169,7 +169,8 @@ void respawnPlayer() {
 }
 
 int updateGameObject(struct GameObject* obj) {
-  if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC > obj->updateInterval) {
+  //Using the current level as a factor for update speed is what controls the difficulty as you progress
+  if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC > obj->updateInterval * (2/(float)state.currentLevel)) {
     int newX = obj->posX;
     int newY = obj->posY;
 
