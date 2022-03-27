@@ -32,7 +32,6 @@ void formatTimeLeft(Timer time, char *str) {
   double total = timerMillisLeft(time);
   int mins = total / 1000 / 60;
   int secs = (int)(total / 1000) % 60;
-  // int mils = 0;
 
   sprintf(str, "%02d %02d", mins, secs);
 }

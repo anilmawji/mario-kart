@@ -14,7 +14,7 @@ typedef enum {
   X,
   LEFT,
   RIGHT
-} Button;
+} ControllerButton;
 
 void initSNES();
 

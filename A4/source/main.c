@@ -10,14 +10,6 @@
  *   UCID: 30099809
  */
 
-#include "bowser.h"
-#include "controller.h"
-#include "font.h"
-#include "gpio.h"
-#include "mario.h"
-#include "menuassets.h"
-#include "renderer.h"
-#include "timer.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,146 +19,220 @@
 #include <unistd.h>
 #include <wiringPi.h>
 
-#define VIEWPORT_WIDTH 1280
-#define VIEWPORT_HEIGHT 720
-#define CELL_WIDTH 32
-#define CELL_HEIGHT 32
-#define MAP_WIDTH (VIEWPORT_WIDTH / CELL_WIDTH)
-// Subtract 1 to make space for the row of gui labels on top
-#define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT - 1)
-#define SCORE_CONST 5
+#include "bowserassets.h"
+#include "color.h"
+#include "config.h"
+#include "controller.h"
+#include "gamemap.h"
+#include "gameobject.h"
+#include "gpio.h"
+#include "marioassets.h"
+#include "menu.h"
+#include "renderer.h"
+#include "timer.h"
+#include "utils.h"
+
 #define BUFFER_SIZE 20
+#define SCORE_CONST 10
+#define PLAYER_START_X 1
+#define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
+#define MAX_STATIC_OBSTACLES 100
+#define MAX_MOVING_OBSTACLES 50
 
-unsigned int *gpio;
-
-enum menuButtons { START_BTN, QUIT_BTN };
-
-typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
-
-// Used by objectPositions to determine the type of object occupying a cell
-// Cells marked as background are not occupied by an object
-enum cellType {
-  BACKGROUND,
-  PLAYER,
-  MOVINGOBSTACLE,
-  STATICOBSTACLE,
-  POWERUP1,
-  POWERUP2,
-  POWERUP3
-};
+enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE };
 
 struct GameState {
-  int gameMap[MAP_HEIGHT][MAP_WIDTH];
-  int objectPositions[MAP_HEIGHT][MAP_WIDTH];
-  int playerX;
-  int playerY;
-  Direction playerDirection;
-  int speed;
-  int lives;
+  struct GameMap gameMap;
+
+  struct GameObject movingObstacles[MAX_MOVING_OBSTACLES];
+  int numMoving;
+
+  struct GameObject staticObstacles[MAX_STATIC_OBSTACLES];
+  int numStatic;
+
   Timer timeLeft;
+  int lives;
   int win;
   int lose;
-  double powerUpShowTime;
+
+  float powerUpShowTime;
+  int currentLevel;
+
 } state;
 
-int mapX, mapY;
+struct GameObject player;
 
 char textBuffer[BUFFER_SIZE];
 
-short int *marioSprites[] = {
-    (short int *)mario_up.pixel_data, (short int *)mario_down.pixel_data,
-    (short int *)mario_right.pixel_data, (short int *)mario_left.pixel_data};
+short* marioSprites[] = {
+    (short*)mario_up.pixel_data, (short*)mario_down.pixel_data,
+    (short*)mario_right.pixel_data, (short*)mario_left.pixel_data};
 
-short int *menuBackground = (short int *)menu_background.pixel_data;
-short int *menuTitle = (short int *)menu_title.pixel_data;
+short* bowserSprite = (short*)bowser_down.pixel_data;
 
-short int *bowserSprite = (short int *)bowser_down.pixel_data;
+// Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
+void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
 
-void printMap() {
+void addMovingObstacle(struct GameObject* obj, int x) {
   for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      if (state.objectPositions[y][x] == BACKGROUND) {
-        printf("%d ", state.gameMap[y][x]);
-      } else {
-        printf("%d ", state.objectPositions[y][x]);
-      }
-    }
-    printf("\n");
+    state.gameMap.backgroundMap[y][x] = GREY;
   }
-  printf("\n\n");
+
+  initGameObject(obj, x, 0, MOVING_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
+                 1.5);
+  addGameObject(&state.gameMap, obj);
+
+  obj->updateInterval = 0.05 + (rand() % 3) * 0.1;
+  obj->lastUpdateTime = clock();
 }
 
-void drawMap() {
-  int cellX, cellY;
+void addStaticObstacle(struct GameObject* obj, int x, int y) {
+  initGameObject(obj, x, y, MOVING_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
+                 0);
+  addGameObject(&state.gameMap, obj);
+}
 
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      cellX = mapX + x * CELL_WIDTH;
-      cellY = mapY + y * CELL_HEIGHT;
+void generateRandomMap() {
+  int numMoving = 0;
+  int numStatic = 0;
+  int chance;
 
-      if (state.objectPositions[y][x] == BACKGROUND) {
-        drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                     state.gameMap[y][x]);
-      } else {
-        if (state.objectPositions[y][x] == MOVINGOBSTACLE ||
-            state.objectPositions[y][x] == STATICOBSTACLE) {
-          drawImage(bowserSprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                    TRANSPARENT, state.gameMap[y][x]);
-        } else if (state.objectPositions[y][x] == POWERUP1 ||
-                   state.objectPositions[y][x] == POWERUP2 ||
-                   state.objectPositions[y][x] == POWERUP3) {
-          if ((double)(clock() - state.powerUpShowTime) / CLOCKS_PER_SEC > 5) {
-            drawImage(marioSprites[state.playerDirection], cellX, cellY,
-                      CELL_WIDTH, CELL_HEIGHT, TRANSPARENT,
-                      state.gameMap[y][x]);
-          } else {
-            drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                         state.gameMap[y][x]);
-          }
-        } else {
-          drawImage(marioSprites[state.playerDirection], cellX, cellY,
-                    CELL_WIDTH, CELL_HEIGHT, TRANSPARENT, state.gameMap[y][x]);
+  srand(time(0));
+
+  for (int x = 3; x < MAP_WIDTH - 3; x++) {
+    chance = rand() % 4;
+    if (chance >= 1 && numMoving + 1 < MAX_MOVING_OBSTACLES) {
+      addMovingObstacle(&state.movingObstacles[numMoving], x);
+      numMoving++;
+    } else if (numStatic + 1 < MAX_STATIC_OBSTACLES) {
+      for (int y = 0; y < MAP_HEIGHT; y++) {
+        chance = rand() % 4;
+        if (chance == 1) {
+          addStaticObstacle(&state.staticObstacles[numStatic], x, y);
+          numStatic++;
         }
       }
     }
   }
+  state.numMoving = numMoving;
+  state.numStatic = numStatic;
 }
 
-void addObstacle(int x) {
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    state.gameMap[y][x] = GREY;
+void respawnPlayer() {
+  player.prevPosX = player.posX;
+  player.prevPosY = player.posY;
+  state.gameMap.objectMap[player.posY][player.posX] = -1;
+  player.posX = PLAYER_START_X;
+  player.posY = PLAYER_START_Y;
+  state.gameMap.objectMap[player.posY][player.posX] = player.index;
+  state.lives--;
+
+  drawGameMapObject(&state.gameMap, &player);
+}
+
+int updateGameObject(struct GameObject* obj) {
+  if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC > obj->updateInterval) {
+    int newX = obj->posX;
+    int newY = obj->posY;
+
+    switch (obj->dir) {
+      case MV_UP:
+        newY = clampUtil(obj->posY - 1, 0, MAP_HEIGHT - 1);
+        break;
+      case MV_DOWN:
+        newY = clampUtil(obj->posY + 1, 0, MAP_HEIGHT - 1);
+        break;
+      case MV_LEFT:
+        newX = clampUtil(obj->posX - 1, 0, MAP_WIDTH - 1);
+        break;
+      case MV_RIGHT:
+        newX = clampUtil(obj->posX - 1, 0, MAP_WIDTH - 1);
+        break;
+    }
+    obj->lastUpdateTime = clock();
+
+    if (newX != obj->posX || newY != obj->posY) {
+      // Loop back to top of screen
+      if (newY == MAP_HEIGHT - 1) {
+        obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
+        obj->prevPosY = obj->posY;
+        state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
+        obj->posY = 0;
+        state.gameMap.objectMap[obj->posY][obj->posX] = obj->index;
+      } else {
+        obj->prevPosX = obj->posX;
+        obj->prevPosY = obj->posY;
+        state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
+        obj->posX = newX;
+        obj->posY = newY;
+        state.gameMap.objectMap[obj->posY][obj->posX] = obj->index;
+      }
+      return TRUE;
+    }
   }
+  return FALSE;
 }
 
-void resetGameArrays() {
-  for (int y = 0; y < MAP_HEIGHT; y++) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      state.gameMap[y][x] = GREEN;
-      state.objectPositions[y][x] = BACKGROUND;
+void updateMovingObstacles() {
+  struct GameObject* obj;
+
+  for (int i = 0; i < state.numMoving; i++) {
+    obj = &state.movingObstacles[i];
+
+    if (updateGameObject(obj)) {
+      if (obj->posX == player.posX && obj->posY == player.posY) {
+        respawnPlayer();
+      }
+      drawGameMapObject(&state.gameMap, obj);
     }
   }
 }
 
-void initGame() {
-  mapX = viewportX;
-  mapY = viewportY + CELL_HEIGHT;
+int checkLoss() {
+  return state.lives == 0 || timerSecondsLeft(state.timeLeft) <= 0;
+}
 
-  resetGameArrays();
+int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 
-  addObstacle(4);
-  addObstacle(6);
+int updatePlayer() {
+  int newX = player.posX;
+  int newY = player.posY;
 
-  state.playerX = 3;
-  state.playerY = MAP_HEIGHT / 2 - 1;
-  state.playerDirection = MV_RIGHT;
-  state.timeLeft.secondsAllowed = 3 * 60; // seconds
-  state.lives = 4;
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
+  if (isButtonHeld(JOY_PAD_UP)) {
+    player.dir = MV_UP;
+    newY = clampUtil(player.posY - 1, 0, MAP_HEIGHT - 1);
+  } else if (isButtonHeld(JOY_PAD_DOWN)) {
+    player.dir = MV_DOWN;
+    newY = clampUtil(player.posY + 1, 0, MAP_HEIGHT - 1);
+  } else if (isButtonHeld(JOY_PAD_LEFT)) {
+    player.dir = MV_LEFT;
+    newX = clampUtil(player.posX - 1, 0, MAP_WIDTH - 1);
+  } else if (isButtonHeld(JOY_PAD_RIGHT)) {
+    player.dir = MV_RIGHT;
+    newX = clampUtil(player.posX + 1, 0, MAP_WIDTH - 1);
+  }
+
+  if (newX != player.posX || newY != player.posY) {
+    if (state.gameMap.objectMap[newY][newX] != -1) {
+      respawnPlayer();
+    } else {
+      player.sprite = marioSprites[player.dir];
+      player.prevPosX = player.posX;
+      player.prevPosY = player.posY;
+      state.gameMap.objectMap[player.prevPosY][player.prevPosX] = -1;
+      player.posX = newX;
+      player.posY = newY;
+      state.gameMap.objectMap[player.posY][player.posX] = player.index;
+
+      drawGameMapObject(&state.gameMap, &player);
+    }
+    return TRUE;
+  }
+  return FALSE;
 }
 
 int calculateScore() {
-  return (timerSecondsLeft(state.timeLeft) + state.lives) *
-         SCORE_CONST;
+  return (timerSecondsLeft(state.timeLeft) + state.lives) * SCORE_CONST;
 }
 
 void drawGuiValues() {
@@ -187,230 +253,57 @@ void drawGuiLabels() {
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
-int clamp(int val, int min, int max) {
-  if (val >= max)
-    return max;
-  if (val <= min)
-    return min;
-  return val;
-}
-
-int randomNumber(int min, int max) { return rand() % (max + 1 - min) + min; }
-
-void generateRandomMap() {
-  resetGameArrays();
-
-  state.playerY = 2;
-  state.playerX = 0;
-  state.objectPositions[state.playerY][state.playerX] = PLAYER;
-
-  int allowedMovable = 100;
-  int allowedStatic = 50;
-  int y = 1;
-  while (y < MAP_HEIGHT) {
-
-    int x = 1;
-    int laneWidth = 0;
-    while (x < MAP_WIDTH - 4) {
-      int cellVal = randomNumber(0, 5);
-      if (cellVal == 1 && allowedMovable > 0) {
-        state.objectPositions[y][x] = MOVINGOBSTACLE;
-        allowedMovable -= 1;
-      }
-      addObstacle(x);
-      x++;
-      if (laneWidth == 6) {
-        int xCopy = x;
-        x += 3;
-        while (xCopy < x) {
-          cellVal = randomNumber(0, 10);
-          if (allowedStatic > 0) {
-            if (cellVal == 1 || cellVal == 5 || cellVal == 6) {
-              state.objectPositions[y][xCopy] = STATICOBSTACLE;
-              allowedStatic -= 1;
-            }
-            if (cellVal == 2) {
-              state.objectPositions[y][xCopy] = POWERUP1;
-              allowedStatic -= 1;
-            }
-
-            if (cellVal == 3) {
-              state.objectPositions[y][xCopy] = POWERUP2;
-              allowedStatic -= 1;
-            }
-
-            if (cellVal == 4) {
-              state.objectPositions[y][xCopy] = POWERUP3;
-              allowedStatic -= 1;
-            }
-          }
-
-          xCopy++;
-        }
-        laneWidth = 0;
-      }
-      laneWidth++;
-    }
-
-    y += 2;
-  }
-
-  // y = 0;
-  // while (y < MAP_HEIGHT) {
-  //   int x = 8;
-  //   while (x < MAP_WIDTH - 2) {
-  //     int cellVal = randomNumber(0, 5);
-  //     if (cellVal == 1 && allowedStatic > 0) {
-  //       state.objectPositions[y][x] = STATICOBSTACLE;
-  //       allowedStatic -= 1;
-  //     }
-  //     x += 6;
-  //   }
-  //   y++;
-  // }
-}
-
-void moveMovable(int yStart) {
-  int playerCollision = 0;
-  for (int y = yStart; y < MAP_HEIGHT; y += 2) {
-    for (int x = 0; x < MAP_WIDTH; x++) {
-      if (state.objectPositions[y][x] == MOVINGOBSTACLE) {
-        if (state.objectPositions[(y + 1) % MAP_HEIGHT][x] == PLAYER) {
-          playerCollision = 1;
-          break;
-        }
-        state.objectPositions[(y + 1) % MAP_HEIGHT][x] = MOVINGOBSTACLE;
-        state.objectPositions[y][x] = BACKGROUND;
-      }
-      if (playerCollision) {
-        break;
-      }
-    }
-  }
-  if (playerCollision) {
-    state.lives--;
-    generateRandomMap();
-  }
-}
-
-void updatePlayer() {
-  state.objectPositions[state.playerY][state.playerX] = BACKGROUND;
-
-  if (isButtonHeld(JOY_PAD_UP)) {
-    state.playerY = clamp(state.playerY - 1, 0, MAP_HEIGHT - 1);
-    state.playerDirection = MV_UP;
-  } else if (isButtonHeld(JOY_PAD_DOWN)) {
-    state.playerY = clamp(state.playerY + 1, 0, MAP_HEIGHT - 1);
-    state.playerDirection = MV_DOWN;
-  } else if (isButtonHeld(JOY_PAD_LEFT)) {
-    state.playerX = clamp(state.playerX - 1, 0, MAP_WIDTH - 1);
-    state.playerDirection = MV_LEFT;
-  } else if (isButtonHeld(JOY_PAD_RIGHT)) {
-    state.playerX = clamp(state.playerX + 1, 0, MAP_WIDTH - 1);
-    state.playerDirection = MV_RIGHT;
-  }
-  if (state.objectPositions[state.playerY][state.playerX] == MOVINGOBSTACLE ||
-      state.objectPositions[state.playerY][state.playerX] == STATICOBSTACLE) {
-    state.lives--;
-
-    generateRandomMap();
-  } else {
-    // Update player location in map
-    state.objectPositions[state.playerY][state.playerX] = PLAYER;
-  }
-}
-
-// Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
-void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
-
-int menuSelection = START_BTN;
-
-// TODO
-void drawMenuButton(int buttonIndex, char *text) {}
-
-void drawMenuScreen() {
-  // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
-
-  drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
-            mapY, menu_title.width, menu_title.height, WHITE, GREY);
-
-  int startBtnX = viewportX + (VIEWPORT_WIDTH - 5 * CELL_WIDTH) / 2;
-  int startBtnY = viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2;
-
-  int quitBtnX = viewportX + (VIEWPORT_WIDTH - 4 * CELL_WIDTH) / 2;
-  int quitBtnY =
-      viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2 + 3 * CELL_HEIGHT;
-
-  drawText("start", 5, startBtnX, startBtnY, GREY);
-  drawText("quit", 4, quitBtnX, quitBtnY, GREY);
-
-  if (menuSelection == START_BTN) {
-    drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
-                   (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, RED);
-    drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
-                   (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY);
-  } else if (menuSelection == QUIT_BTN) {
-    drawStrokeRect(quitBtnX - CELL_WIDTH / 2, quitBtnY - CELL_HEIGHT / 2,
-                   (4 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, RED);
-    drawStrokeRect(startBtnX - CELL_WIDTH / 2, startBtnY - CELL_HEIGHT / 2,
-                   (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREY);
-  }
-
-  drawText("Made by Anil Mawji and Umar Hassan", 34,
-           viewportX + (VIEWPORT_WIDTH - 34 * CELL_WIDTH) / 2,
-           viewportY + VIEWPORT_HEIGHT - 2 * CELL_HEIGHT, GREY);
-}
-
-void updateButtonSelection() {
-  if (isButtonPressed(JOY_PAD_UP) && menuSelection == QUIT_BTN) {
-    menuSelection = START_BTN;
-  } else if (isButtonPressed(JOY_PAD_DOWN) && menuSelection == START_BTN) {
-    menuSelection = QUIT_BTN;
-  }
-}
-
-int powerupsLoaded = FALSE;
-
 void runGame() {
   startTimer(state.timeLeft);
 
-  if (!powerupsLoaded) {
-    state.powerUpShowTime = clock();
-    powerupsLoaded = TRUE;
-  }
-
   clearScreen();
   drawGuiLabels();
+  drawInitialGameMap(&state.gameMap);
 
-  double time = clock();
-  generateRandomMap();
-  int yStart = 1;
-
-  while (!isButtonPressed(START)) {
-    // printMap();
-    drawGuiValues();
-    drawMap();
-
-    if ((double)(clock() - time) / CLOCKS_PER_SEC > 0.5) {
-      // update method
-      moveMovable(yStart);
-      yStart = 1 - yStart;
-      time = clock();
-    }
-
+  while (!isButtonPressed(START) && !state.win && !state.lose) {
+    // printObjectMap(&state.gameMap);
     readSNES();
     updatePlayer();
+    updateMovingObstacles();
+    drawGuiValues();
+
+    if (checkLevelWin()) {
+      if (state.currentLevel == 4) {
+        state.win = TRUE;
+      } else {
+        state.currentLevel++;
+
+        clearGameMap(&state.gameMap, MAP_WIDTH - 2, MAP_HEIGHT, GREEN);
+        generateRandomMap(&state.gameMap);
+        drawInitialGameMap(&state.gameMap);
+
+        setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
+        drawGameMapObject(&state.gameMap, &player);
+      }
+    } else if (checkLoss()) {
+      state.lose = TRUE;
+    }
+  }
+  drawFillRect(viewportX + (VIEWPORT_WIDTH - 16 * CELL_WIDTH) / 2,
+               viewportY + (VIEWPORT_HEIGHT - 6 * CELL_HEIGHT) / 2,
+               16 * CELL_WIDTH, 6 * CELL_HEIGHT, BLACK);
+  if (state.win) {
+    drawText("you win", 7, viewportX + (VIEWPORT_WIDTH - 7 * CELL_WIDTH) / 2,
+             viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, BLACK);
+  } else if (state.lose) {
+    drawText("game over", 9, viewportX + (VIEWPORT_WIDTH - 9 * CELL_WIDTH) / 2,
+             viewportY + (VIEWPORT_HEIGHT - CELL_HEIGHT) / 2, BLACK);
   }
 }
 
 void viewMenu() {
   clearScreen();
-  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREY);
+  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREEN);
 
   while (!isButtonPressed(A)) {
-    updateButtonSelection();
-    drawMenuScreen();
     readSNES();
+    updateMenuScreen();
+    drawMenuScreen();
   }
   // User pressed A
   if (menuSelection == START_BTN) {
@@ -421,20 +314,50 @@ void viewMenu() {
   }
 }
 
-int main(int argc, char *argv[]) {
-  fbinfo = initFbInfo();
+void addFinishLine() {
+  int black = TRUE;
+
+  for (int x = MAP_WIDTH - 2; x < MAP_WIDTH; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+      if (black) {
+        state.gameMap.backgroundMap[y][x] = BLACK;
+        black = FALSE;
+      } else {
+        state.gameMap.backgroundMap[y][x] = WHITE;
+        black = TRUE;
+      }
+    }
+  }
+}
+
+void initGame() {
+  srand(time(0));
+  // Fill game map with grass tiles by default
+  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, GREEN);
+  addFinishLine();
+
+  initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
+                 marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);
+  addGameObject(&state.gameMap, &player);
+
+  generateRandomMap();
+
+  state.timeLeft.secondsAllowed = 3 * 60;  // seconds
+  state.lives = 4;
+  state.currentLevel = 1;
+}
+
+int main(int argc, char* argv[]) {
+  initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGPIO();
   initSNES();
-
-  initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  initMenuScreen();
   initGame();
 
   viewMenu();
-  clearScreen();
 
   // Deallocate memory
   cleanUpRenderer();
-  munmap(fbinfo.fbptr, fbinfo.screenSizeBytes);
 
   return 0;
 }

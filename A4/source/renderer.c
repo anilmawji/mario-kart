@@ -171,6 +171,7 @@ void initFontMap() {
 }
 
 void initRenderer(int viewportWidth, int viewportHeight) {
+  fbinfo = initFbInfo();
   viewportX = (fbinfo.screenWidth - viewportWidth) / 2;
   viewportY = (fbinfo.screenHeight - viewportHeight) / 2;
   pixel = malloc(sizeof(Pixel));
@@ -179,6 +180,8 @@ void initRenderer(int viewportWidth, int viewportHeight) {
 }
 
 void cleanUpRenderer() {
+  munmap(fbinfo.fbptr, fbinfo.screenSizeBytes);
+  
   free(pixel);
   pixel = NULL;
 }
