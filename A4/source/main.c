@@ -92,6 +92,22 @@ void addStaticObstacle(struct GameObject* obj, int x, int y) {
   addGameObject(&state.gameMap, obj);
 }
 
+void addFinishLine() {
+  int black = TRUE;
+
+  for (int x = MAP_WIDTH - 2; x < MAP_WIDTH; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+      if (black) {
+        state.gameMap.backgroundMap[y][x] = BLACK;
+        black = FALSE;
+      } else {
+        state.gameMap.backgroundMap[y][x] = WHITE;
+        black = TRUE;
+      }
+    }
+  }
+}
+
 void generateRandomMap() {
   int numMoving = 0;
   int numStatic = 0;
@@ -116,6 +132,8 @@ void generateRandomMap() {
   }
   state.numMoving = numMoving;
   state.numStatic = numStatic;
+
+  addFinishLine();
 }
 
 void respawnPlayer() {
@@ -261,7 +279,7 @@ void runGame() {
   drawInitialGameMap(&state.gameMap);
 
   while (!isButtonPressed(START) && !state.win && !state.lose) {
-    // printObjectMap(&state.gameMap);
+    // printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
     updateMovingObstacles();
@@ -273,7 +291,7 @@ void runGame() {
       } else {
         state.currentLevel++;
 
-        clearGameMap(&state.gameMap, MAP_WIDTH - 2, MAP_HEIGHT, GREEN);
+        clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
         generateRandomMap(&state.gameMap);
         drawInitialGameMap(&state.gameMap);
 
@@ -314,27 +332,9 @@ void viewMenu() {
   }
 }
 
-void addFinishLine() {
-  int black = TRUE;
-
-  for (int x = MAP_WIDTH - 2; x < MAP_WIDTH; x++) {
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-      if (black) {
-        state.gameMap.backgroundMap[y][x] = BLACK;
-        black = FALSE;
-      } else {
-        state.gameMap.backgroundMap[y][x] = WHITE;
-        black = TRUE;
-      }
-    }
-  }
-}
-
 void initGame() {
-  srand(time(0));
   // Fill game map with grass tiles by default
   initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, GREEN);
-  addFinishLine();
 
   initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
                  marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);

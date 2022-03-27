@@ -61,18 +61,14 @@ void printGameMap(struct GameMap* map) {
       if (map->objectMap[y][x] == -1) {
         switch (map->backgroundMap[y][x]) {
           case GREEN:
-            printf("G ");
+            printf("g ");
             break;
           case GREY:
-            printf("R ");
-            break;
-          // All other cells are interpreted as object ids
-          default:
-            printf("O ");
+            printf("r ");
             break;
         }
       } else {
-        printf("M ");
+        printf("O ");
       }
     }
     printf("\n");
