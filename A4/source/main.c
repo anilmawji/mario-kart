@@ -31,14 +31,16 @@
 #include "renderer.h"
 #include "timer.h"
 #include "utils.h"
+#include "valuepack.h"
 
 #define BUFFER_SIZE 20
 #define SCORE_CONST 10
+#define PLAYER_DEFAULT_SPEED 1.2
 #define PLAYER_START_X 1
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
 #define MAX_STATIC_OBSTACLES 100
 #define MAX_MOVING_OBSTACLES 50
-#define MAX_VALUE_PACKS 6
+#define MAX_VALUE_PACKS 10
 
 enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, VALUE_PACK };
 
@@ -59,7 +61,10 @@ struct GameState {
   int win;
   int lose;
   int currentLevel;
-  float powerUpAddTime;
+
+  float valuePackAddTime;
+  float valuePackSpeedTime;
+  int valuePackEffect;
 
 } state;
 
@@ -72,6 +77,7 @@ short* marioSprites[] = {
     (short*)mario_right.pixel_data, (short*)mario_left.pixel_data};
 
 short* bowserSprite = (short*)bowser_down.pixel_data;
+short* valuepackSprite = (short*)value_pack.pixel_data;
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
@@ -131,7 +137,7 @@ void generateRandomMap() {
         } else if (chance <= 4 && prevX != x && x >= 3 &&
                    numValue < MAX_VALUE_PACKS) {
           initGameObject(&state.valuePacks[numValue], x, y, VALUE_PACK,
-                         marioSprites[MV_DOWN], TRANSPARENT, MV_DOWN, 0);
+                         valuepackSprite, WHITE, MV_DOWN, 0);
           numValue++;
           prevX = x;
         }
@@ -242,11 +248,31 @@ int updatePlayer() {
   if (newX != player.posX || newY != player.posY) {
     int objId = state.gameMap.objectMap[newY][newX];
 
+    if (state.valuePackEffect && (double)(clock() - state.valuePackSpeedTime) / CLOCKS_PER_SEC >= 6) {
+      setPlayerSpeed(PLAYER_DEFAULT_SPEED);
+      state.valuePackEffect = FALSE;
+    }
+
     if (objId == MOVING_OBSTACLE || objId == STATIC_OBSTACLE) {
       respawnPlayer();
-    } else if (objId == VALUE_PACK) {
-      // removeGameObject();
     } else {
+      if (objId == VALUE_PACK) {
+        // Remove value pack from map
+        // Memory is cleared out from gameMap->objects when the level ends
+        state.gameMap.objectMap[newY][newX] = -1;
+
+        // Pick random effect
+        int effect = rand() % 10;
+        if (effect <= -1) {
+          state.lives++;
+        } else if (effect <= -1) {
+          state.timeLeft.secondsAllowed += 300;
+        } else {
+          setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
+          state.valuePackSpeedTime = clock();
+          state.valuePackEffect = TRUE;
+        }
+      }
       player.sprite = marioSprites[player.dir];
       player.prevPosX = player.posX;
       player.prevPosY = player.posY;
@@ -316,7 +342,7 @@ void runGame() {
 
     // Add value packs to the map 10 seconds after the game starts
     if (!valuePacksAdded &&
-        (double)(clock() - state.powerUpAddTime) / CLOCKS_PER_SEC >= 10) {
+        (double)(clock() - state.valuePackAddTime) / CLOCKS_PER_SEC >= 10) {
       for (int i = 0; i < state.numValue; i++) {
         addGameObject(&state.gameMap, &state.valuePacks[i]);
         drawGameMapObject(&state.gameMap, &state.valuePacks[i]);
@@ -338,7 +364,7 @@ void runGame() {
         drawGameMapObject(&state.gameMap, &player);
 
         valuePacksAdded = FALSE;
-        state.powerUpAddTime = clock();
+        state.valuePackAddTime = clock();
       }
     } else if (checkLoss()) {
       state.lose = TRUE;
@@ -352,8 +378,8 @@ void runGame() {
     state.lose = FALSE;
   }
   state.currentLevel = 1;
+  state.valuePackEffect = FALSE;
   valuePacksAdded = FALSE;
-
 }
 
 void viewMenu() {
@@ -386,7 +412,8 @@ void initGame() {
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
   state.lives = 4;
   state.currentLevel = 1;
-  state.powerUpAddTime = clock();
+  state.valuePackAddTime = clock();
+  state.valuePackEffect = FALSE;
 }
 
 int main(int argc, char* argv[]) {
