@@ -5,5 +5,6 @@ typedef enum {
   RED = 0xf800,
   BLUE = 0x00ff,
   GREY = 0x7bef,
-  GREEN = 0x5e05
+  GREEN = 0x5e05,
+  YELLOW = 0xffe0
 } Color;

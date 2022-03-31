@@ -28,6 +28,7 @@
 #include "gpio.h"
 #include "marioassets.h"
 #include "menu.h"
+#include "menuassets.h"
 #include "objectassets.h"
 #include "renderer.h"
 #include "timer.h"
@@ -70,7 +71,13 @@ struct GameState {
 
 struct GameObject player;
 
+struct Menu mainMenu;
+struct Menu gameMenu;
+
 char textBuffer[BUFFER_SIZE];
+
+short* menuBackground = (short*)menu_background.pixel_data;
+short* menuTitle = (short*)menu_title.pixel_data;
 
 short* marioSprites[] = {
     (short*)mario_up.pixel_data, (short*)mario_down.pixel_data,
@@ -169,8 +176,10 @@ void respawnPlayer() {
 }
 
 int updateGameObject(struct GameObject* obj) {
-  //Using the current level as a factor for update speed is what controls the difficulty as you progress
-  if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC > obj->updateInterval * (2/(float)state.currentLevel)) {
+  // Using the current level as a factor for update speed is what controls the
+  // difficulty as you progress
+  if ((clock() - obj->lastUpdateTime) / CLOCKS_PER_SEC >
+      obj->updateInterval * (2 / (float)state.currentLevel)) {
     int newX = obj->posX;
     int newY = obj->posY;
 
@@ -347,7 +356,7 @@ void runGame() {
   int score;
   int valuePacksAdded = FALSE;
 
-  while (!isButtonPressed(START) && !state.win && !state.lose) {
+  while (!state.win && !state.lose) {
     // printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
@@ -355,6 +364,10 @@ void runGame() {
     updateStaticObstacles();
     score = calculateScore();
     drawGuiValues(score);
+
+    if (isButtonPressed(START)) {
+      viewGameMenu();
+    }
 
     // Add value packs to the map 10 seconds after the game starts
     if (!valuePacksAdded &&
@@ -405,26 +418,69 @@ void runGame() {
   valuePacksAdded = FALSE;
 }
 
-void viewMenu() {
+void quitGame() {
   clearScreen();
-  drawInitialMenuScreen();
+  exit(0);
+}
+
+void initMainMenu() {
+  initMenu(&mainMenu);
+  addMenuButton(&mainMenu, "start", runGame);
+  addMenuButton(&mainMenu, "quit", quitGame);
+  mainMenu.posY = viewportY + 350;
+}
+
+void viewMainMenu() {
+  clearScreen();
+  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREEN);
+  drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
+            viewportY + 100, menu_title.width, menu_title.height, BLACK, GREEN);
+  drawInitialMenu(&mainMenu, FALSE);
 
   while (!isButtonPressed(A)) {
     readSNES();
-    updateMenuScreen();
+    updateMenuButtonSelection(&mainMenu);
+    drawMenu(&mainMenu);
   }
-  // User pressed A
-  if (menuSelection == START_BTN) {
-    runGame();
-  } else if (menuSelection == QUIT_BTN) {
-    clearScreen();
-    exit(0);
+  runMenuButtonEvent(&mainMenu, mainMenu.selectedButton);
+}
+
+void initGameMenu() {
+  initMenu(&gameMenu);
+  addMenuButton(&gameMenu, "restart", runGame);
+  addMenuButton(&gameMenu, "quit", viewMainMenu);
+}
+
+void resumeGame() {
+
+}
+
+void pauseGame() {
+
+}
+
+void viewGameMenu() {
+  pauseGame();
+  drawInitialMenu(&gameMenu, TRUE);
+
+  while (!isButtonPressed(A)) {
+    readSNES();
+    updateMenuButtonSelection(&gameMenu);
+    drawMenu(&gameMenu);
+
+    if (gameMenu.selectedButton == 1 && isButtonPressed(START)) {
+      resumeGame();
+      //runGame();
+    }
   }
+  runMenuButtonEvent(&gameMenu, mainMenu.selectedButton);
 }
 
 void initGame() {
   // Fill game map with grass tiles by default
   initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, GREEN);
+
+  initGameMenu();
 
   initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
                  marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);
@@ -446,10 +502,10 @@ int main(int argc, char* argv[]) {
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGPIO();
   initSNES();
-  initMenuScreen(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGame();
+  initMainMenu();
 
-  viewMenu();
+  viewMainMenu();
 
   // Deallocate memory
   cleanUpRenderer();

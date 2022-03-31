@@ -1,40 +1,99 @@
 #include "menu.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "color.h"
 #include "config.h"
 #include "controller.h"
-#include "menuassets.h"
 #include "renderer.h"
 
-/*
-typedef struct {
-    char* label;
-    int labelLength;
-    void* event;
-    int posX;
-    int posY;
-    int bgColor;
-} MenuButton;
-
-MenuButton selectedButton;
-
-void menu_draw_button(MenuButton button, int highlighted) {
-  drawText(button.label, button.labelLength, button.posX, button.posY,
-button.bgColor);
-
-  if (selectedButton.posX == button.posX && selectedButton.posY == button.posY)
-{ drawStrokeRect(button.posX - CELL_WIDTH / 2, button.posY - CELL_HEIGHT / 2,
-                   (button.labelLength + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4,
-RED);
+void drawMenuButtonOutline(struct MenuButton* btn, int x, int y, int selected) {
+  if (selected) {
+    drawStrokeRect(x - CELL_WIDTH / 2, y - CELL_HEIGHT / 2,
+                   (btn->labelLength + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4,
+                   YELLOW);
+  } else {
+    drawStrokeRect(x - CELL_WIDTH / 2, y - CELL_HEIGHT / 2,
+                   (btn->labelLength + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4,
+                   BLUE);
   }
 }
 
-void drawMenuScreen() {
+void drawMenu(struct Menu* menu) {
+  struct MenuButton* btn;
+  int btnX, btnY;
 
+  for (int i = 0; i < menu->numButtons; i++) {
+    btn = &menu->buttons[i];
+    btnX = menu->posX + (menu->width - btn->labelLength * CELL_WIDTH) / 2;
+    btnY = menu->posY + 2 * i * (CELL_HEIGHT + menu->paddingY) +
+           2 * menu->paddingY;
+
+    drawMenuButtonOutline(btn, btnX, btnY, i == menu->selectedButton);
+  }
 }
 
+void drawInitialMenu(struct Menu* menu, int showBg) {
+  if (showBg) {
+    drawFillRect(menu->posX, menu->posY, menu->width, menu->height, BLACK);
+  }
+
+  struct MenuButton* btn;
+  int btnX, btnY;
+
+  for (int i = 0; i < menu->numButtons; i++) {
+    btn = &menu->buttons[i];
+    btnX = menu->posX + (menu->width - btn->labelLength * CELL_WIDTH) / 2;
+    btnY = menu->posY + 2 * i * (CELL_HEIGHT + menu->paddingY) +
+           2 * menu->paddingY;
+
+    drawFillRect(btnX - CELL_WIDTH / 2, btnY - CELL_HEIGHT / 2,
+                 (btn->labelLength + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, BLACK);
+    drawText(btn->label, btn->labelLength, btnX, btnY, BLACK);
+
+    drawMenuButtonOutline(btn, btnX, btnY, i == menu->selectedButton);
+  }
+}
+
+void updateMenuButtonSelection(struct Menu* menu) {
+  if (isButtonPressed(JOY_PAD_UP)) {
+    if (menu->selectedButton == 0) {
+      menu->selectedButton = menu->numButtons - 1;
+    } else {
+      menu->selectedButton = (menu->selectedButton - 1) % (menu->numButtons);
+    }
+  } else if (isButtonPressed(JOY_PAD_DOWN)) {
+    menu->selectedButton = (menu->selectedButton + 1) % (menu->numButtons);
+  }
+}
+
+void runMenuButtonEvent(struct Menu* menu, int buttonIndex) {
+  void (*event)() = menu->buttons[buttonIndex].event;
+  event();
+}
+
+void addMenuButton(struct Menu* menu, char* label, void (*event)()) {
+  struct MenuButton* btn = &menu->buttons[menu->numButtons++];
+  strcpy(btn->label, label);
+  btn->labelLength = strlen(label);
+  btn->event = event;
+
+  menu->height = menu->numButtons * 2 * (CELL_HEIGHT + menu->paddingY);
+  menu->posY = viewportY + (VIEWPORT_HEIGHT - menu->height) / 2;
+}
+
+void initMenu(struct Menu* menu) {
+  menu->numButtons = 0;
+  menu->paddingY = 10;
+  menu->width = 300;
+  menu->height = 2 * menu->paddingY;
+  menu->posX = viewportX + (VIEWPORT_WIDTH - menu->width) / 2;
+  menu->posY = viewportY + (VIEWPORT_HEIGHT - menu->height) / 2;
+  menu->selectedButton = 0;
+}
+
+/*
 void updateButtonSelection() {
   if (isButtonPressed(JOY_PAD_UP) && menuSelection == QUIT_BTN) {
     menuSelection = START_BTN;
@@ -44,24 +103,19 @@ void updateButtonSelection() {
 }
 */
 
-short* menuBackground = (short*)menu_background.pixel_data;
-short* menuTitle = (short*)menu_title.pixel_data;
+// int viewportX;
+// int viewportY;
 
-int viewportX;
-int viewportY;
+// int menuWidth;
+// int menuHeight;
 
-int menuWidth;
-int menuHeight;
+// int startBtnX;
+// int startBtnY;
 
-int startBtnX;
-int startBtnY;
+// int quitBtnX;
+// int quitBtnY;
 
-int quitBtnX;
-int quitBtnY;
-
-// TODO
-void drawMenuButton(int buttonIndex, char* text) {}
-
+/*
 void drawInitialMenuScreen() {
   // drawImage(menuBackground, 0, 0, 1280, 640, -1, RED);
 
@@ -98,17 +152,4 @@ void updateMenuScreen() {
                    (5 + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4, GREEN);
   }
 }
-
-void initMenuScreen(int x, int y, int width, int height) {
-  menuSelection = START_BTN;
-  viewportX = x;
-  viewportY = y;
-  menuWidth = width;
-  menuHeight = height;
-
-  startBtnX = viewportX + (menuWidth - 5 * CELL_WIDTH) / 2;
-  startBtnY = viewportY + (menuHeight - CELL_HEIGHT) / 2;
-
-  quitBtnX = viewportX + (menuWidth - 4 * CELL_WIDTH) / 2;
-  quitBtnY = viewportY + (menuHeight - CELL_HEIGHT) / 2 + 3 * CELL_HEIGHT;
-}
+*/

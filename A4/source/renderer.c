@@ -64,6 +64,25 @@ void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize,
   }
 }
 
+// Filled rectangle
+void drawFillRectWithStroke(int posX, int posY, int width, int height,
+                            int bgColor, int strokeSize, int strokeColor) {
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if (x <= strokeSize || x >= width - strokeSize || y <= strokeSize ||
+          y >= height - strokeSize) {
+        pixel->color = strokeColor;
+      } else {
+        pixel->color = bgColor;
+      }
+      pixel->x = posX + x;
+      pixel->y = posY + y;
+
+      drawPixel(pixel);
+    }
+  }
+}
+
 void drawImage(short int* pixelData, int posX, int posY, int width, int height,
                int oldBgColor, int newBgColor) {
   int i = 0;
@@ -115,8 +134,8 @@ void drawSpriteSheet(struct SpriteSheet* sheet, int posX, int posY) {
             sheet->backgroundColor, sheet->backgroundColor);
 }
 
-void drawSprite(struct SpriteSheet* sheet, int posX, int posY, int width, int height,
-                int startX, int startY, int newBgColor) {
+void drawSprite(struct SpriteSheet* sheet, int posX, int posY, int width,
+                int height, int startX, int startY, int newBgColor) {
   drawCroppedImage(sheet->pixelData, posX, posY, sheet->width, sheet->height,
                    startX, startY, startX + width - 1, startY + height - 1,
                    sheet->backgroundColor, newBgColor);
