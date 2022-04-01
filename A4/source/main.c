@@ -42,7 +42,9 @@
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
 #define MAX_STATIC_OBSTACLES 100
 #define MAX_MOVING_OBSTACLES 50
-#define MAX_POWERUPS 10
+#define MAX_POWERUPS 8
+#define SPEED_POWERUP (PLAYER_DEFAULT_SPEED * 2)
+#define TIME_POWERUP 30
 
 enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, POWERUP };
 
@@ -208,6 +210,8 @@ int updateGameObject(struct GameObject* obj) {
     }
     obj->lastUpdateTime = clock();
 
+    // Only update object position if it isn't going to collide with an
+    // object
     if (newX != obj->posX || newY != obj->posY) {
       // Loop back to top of screen
       if (newY == MAP_HEIGHT - 1) {
@@ -251,6 +255,21 @@ void updateStaticObstacles() {
   }
 }
 
+void activatePowerup() {
+  // Pick random powerup
+  int powerup = rand() % 10;
+
+  if (powerup <= 3) {
+    state.lives++;
+  } else if (powerup <= 6) {
+    state.timeLeft.secondsAllowed += TIME_POWERUP;
+  } else {
+    setPlayerSpeed(SPEED_POWERUP);
+    state.powerupStartTime = clock();
+    state.powerupInEffect = TRUE;
+  }
+}
+
 void updatePlayer() {
   int newX = player.posX;
   int newY = player.posY;
@@ -269,6 +288,7 @@ void updatePlayer() {
     newX = clampUtil(player.posX + 1, 0, MAP_WIDTH - 1);
   }
 
+  // Only update player position if they aren't going to collide with an object
   if (newX != player.posX || newY != player.posY) {
     int objId = state.gameMap.objectMap[newY][newX];
 
@@ -279,18 +299,7 @@ void updatePlayer() {
         // Remove value pack from map
         // Memory is cleared out from gameMap->objects when the level ends
         state.gameMap.objectMap[newY][newX] = -1;
-
-        // Pick random effect
-        int effect = rand() % 10;
-        if (effect <= 3) {
-          state.lives++;
-        } else if (effect <= 6) {
-          state.timeLeft.secondsAllowed += 30;
-        } else {
-          setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
-          state.powerupStartTime = clock();
-          state.powerupInEffect = TRUE;
-        }
+        activatePowerup();
       }
       player.sprite = marioSprites[player.dir];
       setGameObjectPos(&state.gameMap, &player, newX, newY);
@@ -415,7 +424,8 @@ void runGameLoop() {
         generateRandomMap();
         drawInitialGameMap(&state.gameMap);
 
-        setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
+        setGameObjectPos(&state.gameMap, &player, PLAYER_START_X,
+                         PLAYER_START_Y);
         drawGameMapObject(&state.gameMap, &player);
 
         state.powerupsAdded = FALSE;
