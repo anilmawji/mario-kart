@@ -33,6 +33,7 @@
 #include "renderer.h"
 #include "timer.h"
 #include "utils.h"
+#include "plants.h"
 
 #define BUFFER_SIZE 20
 #define SCORE_CONST 10
@@ -63,6 +64,7 @@ struct GameState {
   int lose;
   int currentLevel;
 
+  int valuePacksAdded;
   float valuePackAddTime;
   float valuePackSpeedTime;
   int valuePackEffect;
@@ -87,6 +89,8 @@ short* bowserSprite = (short*)bowser_down.pixel_data;
 short* valuepackSprite = (short*)value_pack.pixel_data;
 
 struct SpriteSheet plantSprites;
+
+void runGame();
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
@@ -251,7 +255,7 @@ void updateStaticObstacles() {
 }
 
 int checkLoss() {
-  return state.lives == 0 || timerSecondsLeft(state.timeLeft) <= 0;
+  return state.lives == 0 || timerSecondsLeft(&state.timeLeft) <= 0;
 }
 
 int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
@@ -313,7 +317,7 @@ int updatePlayer() {
 }
 
 int calculateScore() {
-  return (timerSecondsLeft(state.timeLeft) + state.lives) * SCORE_CONST;
+  return (timerSecondsLeft(&state.timeLeft) + state.lives) * SCORE_CONST;
 }
 
 void drawGuiValues(int score) {
@@ -324,20 +328,24 @@ void drawGuiValues(int score) {
   drawText(textBuffer, 2, viewportX + (12 + 3.5 + 6) * CELL_WIDTH, viewportY,
            0);
 
-  formatTimeLeft(state.timeLeft, textBuffer);
+  formatTimeLeft(&state.timeLeft, textBuffer);
   drawText(textBuffer, 5, (MAP_WIDTH + 5) * CELL_WIDTH, viewportY, 0);
 }
 
 void drawGuiLabels() {
+  //Clear label background
+  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH,
+               CELL_HEIGHT + VIEWPORT_HEIGHT % CELL_HEIGHT, BLACK);
+
   drawText("score ", 6, viewportX, viewportY, 0);
   drawText("lives ", 6, viewportX + (12 + 3.5) * CELL_WIDTH, viewportY, 0);
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
 void drawGameFinishedScreen(char* text, int length, int finalScore) {
-  drawFillRect(viewportX + (VIEWPORT_WIDTH - 20 * CELL_WIDTH) / 2,
+  drawFillRectWithStroke(viewportX + (VIEWPORT_WIDTH - 20 * CELL_WIDTH) / 2,
                viewportY + (VIEWPORT_HEIGHT - 8 * CELL_HEIGHT) / 2,
-               20 * CELL_WIDTH, 8 * CELL_HEIGHT, BLACK);
+               20 * CELL_WIDTH, 8 * CELL_HEIGHT, BLACK, 8, BLUE);
 
   drawText(text, length, viewportX + (VIEWPORT_WIDTH - length * CELL_WIDTH) / 2,
            viewportY + (VIEWPORT_HEIGHT - 4 * CELL_HEIGHT) / 2, BLACK);
@@ -347,14 +355,40 @@ void drawGameFinishedScreen(char* text, int length, int finalScore) {
            viewportY + (VIEWPORT_HEIGHT + CELL_HEIGHT) / 2, BLACK);
 }
 
-void runGame() {
-  clearScreen();
+void resumeGame() {
+  resumeTimer(&state.timeLeft);
+  runGame();
+}
+
+void pauseGame() { pauseTimer(&state.timeLeft);}
+
+void viewGameMenu() {
+  pauseGame();
+  gameMenu.selectedButton = 0;
+  drawInitialMenu(&gameMenu, TRUE);
+
+  while (!isButtonPressed(A)) {
+    readSNES();
+    updateMenuButtonSelection(&gameMenu);
+    drawMenu(&gameMenu);
+
+    if (isButtonPressed(START)) {
+      resumeGame();
+    }
+  }
+  runMenuButtonEvent(&gameMenu, mainMenu.selectedButton);
+}
+
+void runGameFirstTime() {
   drawGuiLabels();
+  startTimer(&state.timeLeft);
+  runGame();
+}
+
+void runGame() {
   drawInitialGameMap(&state.gameMap);
-  startTimer(state.timeLeft);
 
   int score;
-  int valuePacksAdded = FALSE;
 
   while (!state.win && !state.lose) {
     // printGameMap(&state.gameMap);
@@ -370,13 +404,13 @@ void runGame() {
     }
 
     // Add value packs to the map 10 seconds after the game starts
-    if (!valuePacksAdded &&
+    if (!state.valuePacksAdded &&
         (double)(clock() - state.valuePackAddTime) / CLOCKS_PER_SEC >= 10) {
       for (int i = 0; i < state.numValue; i++) {
         addGameObject(&state.gameMap, &state.valuePacks[i]);
         drawGameMapObject(&state.gameMap, &state.valuePacks[i]);
       }
-      valuePacksAdded = TRUE;
+      state.valuePacksAdded = TRUE;
     }
 
     // Value pack speed effect
@@ -399,7 +433,7 @@ void runGame() {
         setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
         drawGameMapObject(&state.gameMap, &player);
 
-        valuePacksAdded = FALSE;
+        state.valuePacksAdded = FALSE;
         state.valuePackAddTime = clock();
       }
     } else if (checkLoss()) {
@@ -415,7 +449,7 @@ void runGame() {
   }
   state.currentLevel = 1;
   state.valuePackEffect = FALSE;
-  valuePacksAdded = FALSE;
+  state.valuePacksAdded = FALSE;
 }
 
 void quitGame() {
@@ -425,7 +459,7 @@ void quitGame() {
 
 void initMainMenu() {
   initMenu(&mainMenu);
-  addMenuButton(&mainMenu, "start", runGame);
+  addMenuButton(&mainMenu, "start", runGameFirstTime);
   addMenuButton(&mainMenu, "quit", quitGame);
   mainMenu.posY = viewportY + 350;
 }
@@ -447,33 +481,8 @@ void viewMainMenu() {
 
 void initGameMenu() {
   initMenu(&gameMenu);
-  addMenuButton(&gameMenu, "restart", runGame);
+  addMenuButton(&gameMenu, "restart", runGameFirstTime);
   addMenuButton(&gameMenu, "quit", viewMainMenu);
-}
-
-void resumeGame() {
-
-}
-
-void pauseGame() {
-
-}
-
-void viewGameMenu() {
-  pauseGame();
-  drawInitialMenu(&gameMenu, TRUE);
-
-  while (!isButtonPressed(A)) {
-    readSNES();
-    updateMenuButtonSelection(&gameMenu);
-    drawMenu(&gameMenu);
-
-    if (gameMenu.selectedButton == 1 && isButtonPressed(START)) {
-      resumeGame();
-      //runGame();
-    }
-  }
-  runMenuButtonEvent(&gameMenu, mainMenu.selectedButton);
 }
 
 void initGame() {
@@ -488,14 +497,18 @@ void initGame() {
 
   generateRandomMap();
 
-  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, 64, 32, 1, 2, 32, 32,
-                  0, 0, WHITE);
+  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, plant.width, plant.height,
+   1, 2, 32, 32,
+                  6, 5, WHITE);
 
+  //If the size of the screen isn't perfectly divisible by the cell height, offset the map by that amount
+  state.gameMap.posY += VIEWPORT_HEIGHT % CELL_HEIGHT;
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
   state.lives = 4;
   state.currentLevel = 1;
   state.valuePackAddTime = clock();
   state.valuePackEffect = FALSE;
+  state.valuePacksAdded = FALSE;
 }
 
 int main(int argc, char* argv[]) {

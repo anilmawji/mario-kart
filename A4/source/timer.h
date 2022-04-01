@@ -1,21 +1,26 @@
 typedef struct {
-  double start;
+  double startTime;
+  double pausedTime;
   double passed;
   int secondsAllowed;  // How long timer should last in seconds
 } Timer;
 
-void startTimer(Timer time);
+void startTimer(Timer* time);
 
-double timerMillisElapsed(Timer time);
+void pauseTimer(Timer* time);
 
-double timerMillisLeft(Timer time);
+void resumeTimer(Timer* time);
 
-void formatTimeLeft(Timer time, char *str);
+double timerMillisElapsed(Timer* time);
 
-int isTimerFinished(Timer time);
+double timerMillisLeft(Timer* time);
 
-double timerSecondsElapsed(Timer time);
+void formatTimeLeft(Timer* time, char *str);
 
-double timerSecondsLeft(Timer time);
+int isTimerFinished(Timer* time);
 
-double timeDiff(Timer time);
+double timerSecondsElapsed(Timer* time);
+
+double timerSecondsLeft(Timer* time);
+
+double timeDiff(Timer* time);
