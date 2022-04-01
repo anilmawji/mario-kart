@@ -282,9 +282,9 @@ void updatePlayer() {
 
         // Pick random effect
         int effect = rand() % 10;
-        if (effect <= -1) {
+        if (effect <= 3) {
           state.lives++;
-        } else if (effect <= -1) {
+        } else if (effect <= 6) {
           state.timeLeft.secondsAllowed += 30;
         } else {
           setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
