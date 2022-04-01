@@ -432,10 +432,10 @@ void initMainMenu() {
 
 void viewMainMenu() {
   clearScreen();
-  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREEN);
+  drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREY);
   drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
             viewportY + 100, menu_title.width, menu_title.height, BLACK, GREEN);
-  drawInitialMenu(&mainMenu, FALSE);
+  drawInitialMenu(&mainMenu, TRUE);
 
   while (!isButtonPressed(A)) {
     readSNES();
