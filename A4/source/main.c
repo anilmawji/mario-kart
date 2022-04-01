@@ -285,7 +285,7 @@ void updatePlayer() {
         if (effect <= -1) {
           state.lives++;
         } else if (effect <= -1) {
-          state.timeLeft.secondsAllowed += 300;
+          state.timeLeft.secondsAllowed += 30;
         } else {
           setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
           state.powerupStartTime = clock();
