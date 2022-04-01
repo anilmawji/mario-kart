@@ -81,11 +81,12 @@ void addMenuButton(struct Menu* menu, char* label, void (*event)()) {
     return;
   }
 
-  struct MenuButton* btn = &menu->buttons[menu->numButtons++];
+  struct MenuButton* btn = &menu->buttons[menu->numButtons];
   strcpy(btn->label, label);
   btn->labelLength = strlen(label);
   btn->event = event;
 
+  menu->numButtons++;
   //Increase menu size to make room for the new button
   menu->height += menu->paddingY + 2 * CELL_HEIGHT;
   //Update menu position

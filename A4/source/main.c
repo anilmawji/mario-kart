@@ -379,7 +379,7 @@ void viewGameMenu() {
       resumeGame();
     }
   }
-  runMenuButtonEvent(&gameMenu, mainMenu.selectedButton);
+  runMenuButtonEvent(&gameMenu, gameMenu.selectedButton);
 }
 
 void runGameLoop() {
@@ -468,8 +468,8 @@ void startNewGame() {
 
 void initMainMenu() {
   initMenu(&mainMenu);
-  addMenuButton(&mainMenu, "start", startNewGame);
-  addMenuButton(&mainMenu, "quit", quitGame);
+  addMenuButton(&mainMenu, "start", &startNewGame);
+  addMenuButton(&mainMenu, "quit", &quitGame);
   mainMenu.posY = viewportY + 350;
 }
 
@@ -490,19 +490,19 @@ void viewMainMenu() {
 
 void initGameMenu() {
   initMenu(&gameMenu);
-  addMenuButton(&gameMenu, "restart", startNewGame);
-  addMenuButton(&gameMenu, "quit", viewMainMenu);
+  addMenuButton(&gameMenu, "restart", &startNewGame);
+  addMenuButton(&gameMenu, "quit", &viewMainMenu);
 }
 
 void resetGameState() {
+  //Remove all obstacles and powerups
   memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
   memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
   memset(&state.powerups, 0, sizeof(state.powerups));
 
   clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
 
-  // If the size of the screen isn't perfectly divisible by the cell height,
-  // offset the map by that amount
+  //Set fields to defaults
   state.lives = 4;
   state.win = FALSE;
   state.lose = FALSE;
@@ -524,11 +524,15 @@ void initGame() {
   initSpriteSheet(&plantSprites, (short*)plant.pixel_data, plant.width,
                   plant.height, 1, 2, 32, 32, 6, 5, WHITE);
 
+  // If the size of the screen isn't perfectly divisible by the cell height,
+  // move the map down by the extra space
   state.gameMap.posY += VIEWPORT_HEIGHT % CELL_HEIGHT;
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
 }
 
 int main(int argc, char* argv[]) {
+  //Initialize all game features
+  //These functions are only called once
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGPIO();
   initSNES();

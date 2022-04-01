@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "color.h"
 #include "config.h"
@@ -12,6 +13,12 @@
 #define TRUE 1
 #define FALSE 0
 
+void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor) {
+  map->posX = posX;
+  map->posY = posY;
+  map->numObjects = 0;
+}
+
 void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
   for (int y = 0; y < maxY; y++) {
     for (int x = 0; x < maxX; x++) {
@@ -19,15 +26,8 @@ void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
       map->objectMap[y][x] = -1;
     }
   }
-  for (int i = 1; i < map->numObjects; i++) {
-    map->objects[i] = NULL;
-  }
-  map->numObjects = 0;
-}
 
-void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor) {
-  map->posX = posX;
-  map->posY = posY;
+  memset(&map->objects, 0, sizeof(map->objects));
   map->numObjects = 0;
 }
 
