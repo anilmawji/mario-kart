@@ -104,6 +104,15 @@ int isButtonPressed(int i) {
 
 int isButtonReleased(int i) { return buttons[i] == RELEASED; }
 
+int isAnyButtonPressed() {
+  for (int i = 0; i < NUM_REAL_BUTTONS; i++) {
+    if (isButtonPressed(i)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
 void INP_GPIO(int p) {
   // Determine the GP function and clear the 3 bits associated with pin p
   *(gpio + (p / 10)) &= ~(7 << ((p % 10) * 3));

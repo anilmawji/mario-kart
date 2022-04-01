@@ -28,6 +28,8 @@ int isButtonPressed(int i);
 
 int isButtonReleased(int i);
 
+int isAnyButtonPressed();
+
 float secondsSinceLastButtonPress();
 
 void setButtonDelay(float delay);

@@ -92,6 +92,8 @@ struct SpriteSheet plantSprites;
 
 void runGameLoop();
 void resetGameState();
+void viewMainMenu();
+void viewGameMenu();
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
@@ -382,6 +384,20 @@ void viewGameMenu() {
   runMenuButtonEvent(&gameMenu, gameMenu.selectedButton);
 }
 
+void endGame(int finalScore) {
+  if (state.win) {
+    drawGameFinishedScreen("you win", 7, finalScore);
+  } else if (state.lose) {
+    drawGameFinishedScreen("game over", 9, finalScore);
+  }
+  //Give player enough time to see results before registering button presses
+  sleep(2);
+  while (!isAnyButtonPressed()) {
+    readSNES();
+  }
+  viewMainMenu();
+}
+
 void runGameLoop() {
   drawInitialGameMap(&state.gameMap);
   drawGameMapObject(&state.gameMap, &player);
@@ -438,16 +454,7 @@ void runGameLoop() {
       state.lose = TRUE;
     }
   }
-  if (state.win) {
-    drawGameFinishedScreen("you win", 7, score);
-    state.win = FALSE;
-  } else if (state.lose) {
-    drawGameFinishedScreen("game over", 9, score);
-    state.lose = FALSE;
-  }
-  state.currentLevel = 1;
-  state.powerupInEffect = FALSE;
-  state.powerupsAdded = FALSE;
+  endGame(score);
 }
 
 void quitGame() {
