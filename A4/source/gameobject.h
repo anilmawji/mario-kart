@@ -28,5 +28,3 @@ struct GameObject {
 void initGameObject(struct GameObject* obj, int posX, int posY, int id,
                     short* sprite, int spriteBgColor, Direction dir, int speed);
 
-void setGameObjectPos(struct GameObject* obj, int posX, int posY);
-

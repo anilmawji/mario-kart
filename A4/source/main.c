@@ -109,7 +109,7 @@ int checkLoss() {
 int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 
 void addMovingObstacle(struct GameObject* obj, int x) {
-  //Draw road
+  // Draw road
   for (int y = 0; y < MAP_HEIGHT; y++) {
     state.gameMap.backgroundMap[y][x] = GREY;
   }
@@ -388,6 +388,7 @@ void runGameLoop() {
   int score;
 
   while (!state.win && !state.lose) {
+    //double start = clock(); //rough performance test
     // printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
@@ -441,6 +442,8 @@ void runGameLoop() {
     } else if (checkLoss()) {
       state.lose = TRUE;
     }
+    //double dur = clock() - start;
+    //printf("%.4f\n", dur / CLOCKS_PER_SEC);
   }
   endGame(score);
 }
@@ -455,9 +458,9 @@ void startGame() {
   generateRandomMap();
 
   drawGuiLabels();
+  setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
   startTimer(&state.timeLeft);
   state.levelStartTime = clock();
-  setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
   runGameLoop();
 }
 

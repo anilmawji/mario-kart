@@ -32,6 +32,8 @@ void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
 }
 
 void addGameObject(struct GameMap* map, struct GameObject* obj) {
+  // Useful for detecting potential memory leaks
+  // All objects should be deleted and generated from scratch when a new level is reached
   if (map->numObjects + 1 > MAX_OBJECTS) {
     fprintf(stderr, "Failed to add game object; maximum reached\n");
     return;
@@ -54,6 +56,7 @@ void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX, int
   obj->posX = posX;
   obj->posY = posY;
 
+  // Update the location of the object in the object map
   map->objectMap[obj->prevPosY][obj->prevPosX] = -1;
   map->objectMap[obj->posY][obj->posX] = obj->id;
 }
@@ -114,6 +117,7 @@ void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
   int cellX = map->posX + obj->posX * CELL_WIDTH;
   int cellY = map->posY + obj->posY * CELL_HEIGHT;
 
+  //Increment the animation frame
   obj->animationFrame++;
   if (obj->animationFrame > obj->spriteSheet->cols) {
     obj->animationFrame = 0;
@@ -127,6 +131,7 @@ void drawInitialGameMap(struct GameMap* map) {
   int cellX;
   int cellY;
 
+  // Draw background tiles
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
       if (map->objectMap[y][x] == -1) {
@@ -141,6 +146,7 @@ void drawInitialGameMap(struct GameMap* map) {
 
   struct GameObject* obj;
 
+  // Draw object tiles
   for (int i = 0; i < map->numObjects; i++) {
     obj = map->objects[i];
 

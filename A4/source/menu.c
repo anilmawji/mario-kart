@@ -9,10 +9,9 @@
 #include "renderer.h"
 
 void drawMenuButtonOutline(struct MenuButton* btn, int x, int y, int selected) {
-  int color = selected ? YELLOW : BLUE;
-
+  // Outline color is yellow if the button is selected
   drawStrokeRect(x, y, (btn->labelLength + 1) * CELL_WIDTH, 2 * CELL_HEIGHT, 4,
-                 color);
+                 selected ? YELLOW : BLUE);
 }
 
 void drawMenu(struct Menu* menu) {
@@ -57,14 +56,16 @@ void drawInitialMenu(struct Menu* menu, int showBg) {
 
 void updateMenuButtonSelection(struct Menu* menu) {
   if (isButtonPressed(JOY_PAD_UP)) {
-    // Move selection one button up, circle back to bottom if there is no button above
+    // Move selection one button up, circle back to bottom if there is no button
+    // above
     if (menu->selectedButton == 0) {
       menu->selectedButton = menu->numButtons - 1;
     } else {
       menu->selectedButton = (menu->selectedButton - 1) % (menu->numButtons);
     }
   } else if (isButtonPressed(JOY_PAD_DOWN)) {
-    // Move selection one button down, circle back to top if there is no button below
+    // Move selection one button down, circle back to top if there is no button
+    // below
     menu->selectedButton = (menu->selectedButton + 1) % (menu->numButtons);
   }
 }
@@ -77,7 +78,7 @@ void runMenuButtonEvent(struct Menu* menu, int buttonIndex) {
 
 void addMenuButton(struct Menu* menu, char* label, void (*event)()) {
   if (menu->numButtons == MAX_MENU_BTNS) {
-    fprintf(stderr, "Failed to add menu button; the menu already has the maximum number of buttons!");
+    fprintf(stderr, "Failed to add menu button; maximum reached\n");
     return;
   }
 
@@ -87,9 +88,9 @@ void addMenuButton(struct Menu* menu, char* label, void (*event)()) {
   btn->event = event;
 
   menu->numButtons++;
-  //Increase menu size to make room for the new button
+  // Increase menu size to make room for the new button
   menu->height += menu->paddingY + 2 * CELL_HEIGHT;
-  //Update menu position
+  // Update menu position
   menu->posY = viewportY + (VIEWPORT_HEIGHT - menu->height) / 2;
 }
 
