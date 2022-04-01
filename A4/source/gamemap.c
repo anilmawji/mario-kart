@@ -13,7 +13,7 @@
 #define TRUE 1
 #define FALSE 0
 
-void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor) {
+void initGameMap(struct GameMap* map, int posX, int posY) {
   map->posX = posX;
   map->posY = posY;
   map->numObjects = 0;
@@ -45,6 +45,17 @@ void addGameObject(struct GameMap* map, struct GameObject* obj) {
 void removeGameObject(struct GameMap* map, struct GameObject* obj) {
   map->objectMap[obj->posY][obj->posX] = -1;
   map->objects[obj->index] = NULL;
+}
+
+void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX, int posY) {
+  obj->prevPosX = obj->posX;
+  obj->prevPosY = obj->posY;
+  
+  obj->posX = posX;
+  obj->posY = posY;
+
+  map->objectMap[obj->prevPosY][obj->prevPosX] = -1;
+  map->objectMap[obj->posY][obj->posX] = obj->id;
 }
 
 void printGameMap(struct GameMap* map) {

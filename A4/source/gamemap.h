@@ -16,13 +16,16 @@ struct GameMap {
   int numObjects;
 };
 
-void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor);
+void initGameMap(struct GameMap* map, int posX, int posY);
 
-void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor);
+void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor);
 
 void addGameObject(struct GameMap* map, struct GameObject* obj);
 
 void removeGameObject(struct GameMap* map, struct GameObject* obj);
+
+void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
+                      int posY);
 
 void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj);
 

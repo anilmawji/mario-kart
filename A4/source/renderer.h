@@ -38,9 +38,6 @@ void drawCroppedImage(short int *pixelData, int posX, int posY, int oldWidth,
 
 void drawSpriteSheet(struct SpriteSheet *sheet, int posX, int posY);
 
-void drawSprite(struct SpriteSheet *sheet, int posX, int posY, int width,
-                int height, int startX, int startY, int newBgColor);
-
 void drawSpriteTile(struct SpriteSheet *sheet, int posX, int posY, int tileX,
                     int tileY, int newBgColor);
 

@@ -30,10 +30,3 @@ void initGameObject(struct GameObject* obj, int posX, int posY, int id,
   obj->animationFrame = 0;
   obj->updateInterval = 0.2;
 }
-
-void setGameObjectPos(struct GameObject* obj, int posX, int posY) {
-  obj->prevPosX = obj->posX;
-  obj->prevPosY = obj->posY;
-  obj->posX = posX;
-  obj->posY = posY;
-}

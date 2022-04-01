@@ -134,13 +134,6 @@ void drawSpriteSheet(struct SpriteSheet* sheet, int posX, int posY) {
             sheet->backgroundColor, sheet->backgroundColor);
 }
 
-void drawSprite(struct SpriteSheet* sheet, int posX, int posY, int width,
-                int height, int startX, int startY, int newBgColor) {
-  drawCroppedImage(sheet->pixelData, posX, posY, sheet->width, sheet->height,
-                   startX, startY, startX + width - 1, startY + height - 1,
-                   sheet->backgroundColor, newBgColor);
-}
-
 void drawSpriteTile(struct SpriteSheet* sheet, int posX, int posY, int tileX,
                     int tileY, int newBgColor) {
   int startX = tileX * sheet->tileWidth + (1 + tileX) * sheet->paddingX;

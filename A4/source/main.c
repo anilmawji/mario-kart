@@ -42,9 +42,9 @@
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
 #define MAX_STATIC_OBSTACLES 100
 #define MAX_MOVING_OBSTACLES 50
-#define MAX_VALUE_PACKS 10
+#define MAX_POWERUPS 10
 
-enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, VALUE_PACK };
+enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, POWERUP };
 
 struct GameState {
   struct GameMap gameMap;
@@ -55,7 +55,7 @@ struct GameState {
   struct GameObject staticObstacles[MAX_STATIC_OBSTACLES];
   int numStatic;
 
-  struct GameObject powerups[MAX_VALUE_PACKS];
+  struct GameObject powerups[MAX_POWERUPS];
   int numValue;
 
   Timer timeLeft;
@@ -63,18 +63,16 @@ struct GameState {
   int win;
   int lose;
   int currentLevel;
+  float levelStartTime;
 
   int powerupsAdded;
-  float powerupAddTime;
-  float powerupSpeedTime;
+  float powerupStartTime;
   int powerupInEffect;
 
 } state;
 
+struct Menu mainMenu, gameMenu;
 struct GameObject player;
-
-struct Menu mainMenu;
-struct Menu gameMenu;
 
 char textBuffer[BUFFER_SIZE];
 
@@ -86,7 +84,7 @@ short* marioSprites[] = {
     (short*)mario_right.pixel_data, (short*)mario_left.pixel_data};
 
 short* bowserSprite = (short*)bowser_down.pixel_data;
-short* powerupSprite = (short*)value_pack.pixel_data;
+short* powerupSprite = (short*)powerup.pixel_data;
 
 struct SpriteSheet plantSprites;
 
@@ -97,6 +95,16 @@ void viewGameMenu();
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
+
+int calculateScore() {
+  return (timerSecondsLeft(&state.timeLeft) + state.lives) * SCORE_CONST;
+}
+
+int checkLoss() {
+  return state.lives == 0 || timerSecondsLeft(&state.timeLeft) <= 0;
+}
+
+int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 
 void addMovingObstacle(struct GameObject* obj, int x) {
   for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -154,8 +162,8 @@ void generateRandomMap() {
           obj->updateInterval = 0.4 + (rand() % 4) * 0.1;
           numStatic++;
         } else if (chance <= 4 && prevX != x && x >= 3 &&
-                   numValue < MAX_VALUE_PACKS) {
-          initGameObject(&state.powerups[numValue], x, y, VALUE_PACK,
+                   numValue < MAX_POWERUPS) {
+          initGameObject(&state.powerups[numValue], x, y, POWERUP,
                          powerupSprite, WHITE, MV_DOWN, 0);
           numValue++;
           prevX = x;
@@ -171,17 +179,9 @@ void generateRandomMap() {
 }
 
 void respawnPlayer() {
-  player.prevPosX = player.posX;
-  player.prevPosY = player.posY;
-  state.gameMap.objectMap[player.posY][player.posX] = -1;
-  player.posX = PLAYER_START_X;
-  player.posY = PLAYER_START_Y;
-  state.gameMap.objectMap[player.posY][player.posX] = player.id;
+  setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
   state.lives--;
-
   drawGameMapObject(&state.gameMap, &player);
-
-  // setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
 }
 
 int updateGameObject(struct GameObject* obj) {
@@ -212,17 +212,9 @@ int updateGameObject(struct GameObject* obj) {
       // Loop back to top of screen
       if (newY == MAP_HEIGHT - 1) {
         obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
-        obj->prevPosY = obj->posY;
-        state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
-        obj->posY = 0;
-        state.gameMap.objectMap[obj->posY][obj->posX] = obj->id;
+        setGameObjectPos(&state.gameMap, obj, obj->posX, 0);
       } else {
-        obj->prevPosX = obj->posX;
-        obj->prevPosY = obj->posY;
-        state.gameMap.objectMap[obj->prevPosY][obj->prevPosX] = -1;
-        obj->posX = newX;
-        obj->posY = newY;
-        state.gameMap.objectMap[obj->posY][obj->posX] = obj->id;
+        setGameObjectPos(&state.gameMap, obj, newX, newY);
       }
       return TRUE;
     }
@@ -259,13 +251,7 @@ void updateStaticObstacles() {
   }
 }
 
-int checkLoss() {
-  return state.lives == 0 || timerSecondsLeft(&state.timeLeft) <= 0;
-}
-
-int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
-
-int updatePlayer() {
+void updatePlayer() {
   int newX = player.posX;
   int newY = player.posY;
 
@@ -289,7 +275,7 @@ int updatePlayer() {
     if (objId == MOVING_OBSTACLE || objId == STATIC_OBSTACLE) {
       respawnPlayer();
     } else {
-      if (objId == VALUE_PACK) {
+      if (objId == POWERUP) {
         // Remove value pack from map
         // Memory is cleared out from gameMap->objects when the level ends
         state.gameMap.objectMap[newY][newX] = -1;
@@ -302,27 +288,15 @@ int updatePlayer() {
           state.timeLeft.secondsAllowed += 300;
         } else {
           setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
-          state.powerupSpeedTime = clock();
+          state.powerupStartTime = clock();
           state.powerupInEffect = TRUE;
         }
       }
       player.sprite = marioSprites[player.dir];
-      player.prevPosX = player.posX;
-      player.prevPosY = player.posY;
-      state.gameMap.objectMap[player.prevPosY][player.prevPosX] = -1;
-      player.posX = newX;
-      player.posY = newY;
-      state.gameMap.objectMap[player.posY][player.posX] = player.id;
-
+      setGameObjectPos(&state.gameMap, &player, newX, newY);
       drawGameMapObject(&state.gameMap, &player);
     }
-    return TRUE;
   }
-  return FALSE;
-}
-
-int calculateScore() {
-  return (timerSecondsLeft(&state.timeLeft) + state.lives) * SCORE_CONST;
 }
 
 void drawGuiValues(int score) {
@@ -347,6 +321,23 @@ void drawGuiLabels() {
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
+void resetGameState() {
+  // Remove all obstacles and powerups
+  memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
+  memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
+  memset(&state.powerups, 0, sizeof(state.powerups));
+
+  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
+
+  // Set fields to defaults
+  state.lives = 4;
+  state.win = FALSE;
+  state.lose = FALSE;
+  state.currentLevel = 1;
+  state.powerupInEffect = FALSE;
+  state.powerupsAdded = FALSE;
+}
+
 void drawGameFinishedScreen(char* text, int length, int finalScore) {
   drawFillRectWithStroke(viewportX + (VIEWPORT_WIDTH - 20 * CELL_WIDTH) / 2,
                          viewportY + (VIEWPORT_HEIGHT - 8 * CELL_HEIGHT) / 2,
@@ -360,37 +351,13 @@ void drawGameFinishedScreen(char* text, int length, int finalScore) {
            viewportY + (VIEWPORT_HEIGHT + CELL_HEIGHT) / 2, BLACK);
 }
 
-void resumeGame() {
-  resumeTimer(&state.timeLeft);
-  runGameLoop();
-}
-
-void pauseGame() { pauseTimer(&state.timeLeft); }
-
-void viewGameMenu() {
-  pauseGame();
-  gameMenu.selectedButton = 0;
-  drawInitialMenu(&gameMenu, TRUE);
-
-  while (!isButtonPressed(A)) {
-    readSNES();
-    updateMenuButtonSelection(&gameMenu);
-    drawMenu(&gameMenu);
-
-    if (isButtonPressed(START)) {
-      resumeGame();
-    }
-  }
-  runMenuButtonEvent(&gameMenu, gameMenu.selectedButton);
-}
-
 void endGame(int finalScore) {
   if (state.win) {
     drawGameFinishedScreen("you win", 7, finalScore);
   } else if (state.lose) {
     drawGameFinishedScreen("game over", 9, finalScore);
   }
-  //Give player enough time to see results before registering button presses
+  // Give player enough time to see results before registering button presses
   sleep(2);
   while (!isAnyButtonPressed()) {
     readSNES();
@@ -414,12 +381,17 @@ void runGameLoop() {
     drawGuiValues(score);
 
     if (isButtonPressed(START)) {
+      // Pause game before viewing game menu
+      pauseTimer(&state.timeLeft);
       viewGameMenu();
+      // Game menu has been closed, resume game
+      resumeTimer(&state.timeLeft);
+      runGameLoop();
     }
 
     // Add value packs to the map 10 seconds after the game starts
     if (!state.powerupsAdded &&
-        (double)(clock() - state.powerupAddTime) / CLOCKS_PER_SEC >= 10) {
+        (double)(clock() - state.levelStartTime) / CLOCKS_PER_SEC >= 10) {
       for (int i = 0; i < state.numValue; i++) {
         addGameObject(&state.gameMap, &state.powerups[i]);
         drawGameMapObject(&state.gameMap, &state.powerups[i]);
@@ -427,9 +399,8 @@ void runGameLoop() {
       state.powerupsAdded = TRUE;
     }
 
-    // Value pack speed effect
     if (state.powerupInEffect &&
-        (double)(clock() - state.powerupSpeedTime) / CLOCKS_PER_SEC >= 6) {
+        (double)(clock() - state.powerupStartTime) / CLOCKS_PER_SEC >= 6) {
       setPlayerSpeed(PLAYER_DEFAULT_SPEED);
       state.powerupInEffect = FALSE;
     }
@@ -444,11 +415,11 @@ void runGameLoop() {
         generateRandomMap();
         drawInitialGameMap(&state.gameMap);
 
-        setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
+        setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
         drawGameMapObject(&state.gameMap, &player);
 
         state.powerupsAdded = FALSE;
-        state.powerupAddTime = clock();
+        state.levelStartTime = clock();
       }
     } else if (checkLoss()) {
       state.lose = TRUE;
@@ -462,29 +433,26 @@ void quitGame() {
   exit(0);
 }
 
-void startNewGame() {
+void startGame() {
   resetGameState();
   generateRandomMap();
 
   drawGuiLabels();
   startTimer(&state.timeLeft);
-  state.powerupAddTime = clock();
-  setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
+  state.levelStartTime = clock();
+  setGameObjectPos(&state.gameMap, &player, PLAYER_START_X, PLAYER_START_Y);
   runGameLoop();
-}
-
-void initMainMenu() {
-  initMenu(&mainMenu);
-  addMenuButton(&mainMenu, "start", &startNewGame);
-  addMenuButton(&mainMenu, "quit", &quitGame);
-  mainMenu.posY = viewportY + 350;
 }
 
 void viewMainMenu() {
   clearScreen();
+  // Draw background
   drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, GREY);
+  // Draw title
   drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
             viewportY + 100, menu_title.width, menu_title.height, BLACK, GREEN);
+  // Draw buttons
+  mainMenu.selectedButton = 0;
   drawInitialMenu(&mainMenu, TRUE);
 
   while (!isButtonPressed(A)) {
@@ -495,35 +463,39 @@ void viewMainMenu() {
   runMenuButtonEvent(&mainMenu, mainMenu.selectedButton);
 }
 
-void initGameMenu() {
-  initMenu(&gameMenu);
-  addMenuButton(&gameMenu, "restart", &startNewGame);
-  addMenuButton(&gameMenu, "quit", &viewMainMenu);
-}
+void viewGameMenu() {
+  // Draw buttons
+  gameMenu.selectedButton = 0;
+  drawInitialMenu(&gameMenu, TRUE);
 
-void resetGameState() {
-  //Remove all obstacles and powerups
-  memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
-  memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
-  memset(&state.powerups, 0, sizeof(state.powerups));
+  while (!isButtonPressed(A)) {
+    readSNES();
+    updateMenuButtonSelection(&gameMenu);
+    drawMenu(&gameMenu);
 
-  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
-
-  //Set fields to defaults
-  state.lives = 4;
-  state.win = FALSE;
-  state.lose = FALSE;
-  state.currentLevel = 1;
-  state.powerupInEffect = FALSE;
-  state.powerupsAdded = FALSE;
+    if (isButtonPressed(START)) {
+      // Exit game menu
+      return;
+    }
+  }
+  runMenuButtonEvent(&gameMenu, gameMenu.selectedButton);
 }
 
 void initGame() {
-  // Fill game map with grass tiles by default
-  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, GREEN);
+  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT);
 
-  initGameMenu();
+  // Init main menu buttons
+  initMenu(&mainMenu);
+  addMenuButton(&mainMenu, "start", &startGame);
+  addMenuButton(&mainMenu, "quit", &quitGame);
+  mainMenu.posY = viewportY + 350;
 
+  // Init game menu buttons
+  initMenu(&gameMenu);
+  addMenuButton(&gameMenu, "restart", &startGame);
+  addMenuButton(&gameMenu, "quit", &viewMainMenu);
+
+  // Init player
   initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
                  marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);
   addGameObject(&state.gameMap, &player);
@@ -538,13 +510,12 @@ void initGame() {
 }
 
 int main(int argc, char* argv[]) {
-  //Initialize all game features
-  //These functions are only called once
+  // Initialize all game features
+  // These functions are only called once
   initRenderer(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   initGPIO();
   initSNES();
   initGame();
-  initMainMenu();
 
   viewMainMenu();
 
