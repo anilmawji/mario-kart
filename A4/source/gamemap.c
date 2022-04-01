@@ -29,8 +29,6 @@ void initGameMap(struct GameMap* map, int posX, int posY, int defaultColor) {
   map->posX = posX;
   map->posY = posY;
   map->numObjects = 0;
-
-  clearGameMap(map, MAP_WIDTH, MAP_HEIGHT, defaultColor);
 }
 
 void addGameObject(struct GameMap* map, struct GameObject* obj) {

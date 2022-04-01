@@ -30,10 +30,10 @@
 #include "menu.h"
 #include "menuassets.h"
 #include "objectassets.h"
+#include "plants.h"
 #include "renderer.h"
 #include "timer.h"
 #include "utils.h"
-#include "plants.h"
 
 #define BUFFER_SIZE 20
 #define SCORE_CONST 10
@@ -55,7 +55,7 @@ struct GameState {
   struct GameObject staticObstacles[MAX_STATIC_OBSTACLES];
   int numStatic;
 
-  struct GameObject valuePacks[MAX_VALUE_PACKS];
+  struct GameObject powerups[MAX_VALUE_PACKS];
   int numValue;
 
   Timer timeLeft;
@@ -64,10 +64,10 @@ struct GameState {
   int lose;
   int currentLevel;
 
-  int valuePacksAdded;
-  float valuePackAddTime;
-  float valuePackSpeedTime;
-  int valuePackEffect;
+  int powerupsAdded;
+  float powerupAddTime;
+  float powerupSpeedTime;
+  int powerupInEffect;
 
 } state;
 
@@ -86,11 +86,12 @@ short* marioSprites[] = {
     (short*)mario_right.pixel_data, (short*)mario_left.pixel_data};
 
 short* bowserSprite = (short*)bowser_down.pixel_data;
-short* valuepackSprite = (short*)value_pack.pixel_data;
+short* powerupSprite = (short*)value_pack.pixel_data;
 
 struct SpriteSheet plantSprites;
 
-void runGame();
+void runGameLoop();
+void resetGameState();
 
 // Eg. A speed of 1 leads to a delay of 1/(5*1) = 1/5 = 0.2
 void setPlayerSpeed(float speed) { setButtonDelay(1 / (5 * speed)); }
@@ -152,8 +153,8 @@ void generateRandomMap() {
           numStatic++;
         } else if (chance <= 4 && prevX != x && x >= 3 &&
                    numValue < MAX_VALUE_PACKS) {
-          initGameObject(&state.valuePacks[numValue], x, y, VALUE_PACK,
-                         valuepackSprite, WHITE, MV_DOWN, 0);
+          initGameObject(&state.powerups[numValue], x, y, VALUE_PACK,
+                         powerupSprite, WHITE, MV_DOWN, 0);
           numValue++;
           prevX = x;
         }
@@ -177,6 +178,8 @@ void respawnPlayer() {
   state.lives--;
 
   drawGameMapObject(&state.gameMap, &player);
+
+  // setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
 }
 
 int updateGameObject(struct GameObject* obj) {
@@ -297,8 +300,8 @@ int updatePlayer() {
           state.timeLeft.secondsAllowed += 300;
         } else {
           setPlayerSpeed(PLAYER_DEFAULT_SPEED * 2.5);
-          state.valuePackSpeedTime = clock();
-          state.valuePackEffect = TRUE;
+          state.powerupSpeedTime = clock();
+          state.powerupInEffect = TRUE;
         }
       }
       player.sprite = marioSprites[player.dir];
@@ -333,7 +336,7 @@ void drawGuiValues(int score) {
 }
 
 void drawGuiLabels() {
-  //Clear label background
+  // Clear label background
   drawFillRect(viewportX, viewportY, VIEWPORT_WIDTH,
                CELL_HEIGHT + VIEWPORT_HEIGHT % CELL_HEIGHT, BLACK);
 
@@ -344,8 +347,8 @@ void drawGuiLabels() {
 
 void drawGameFinishedScreen(char* text, int length, int finalScore) {
   drawFillRectWithStroke(viewportX + (VIEWPORT_WIDTH - 20 * CELL_WIDTH) / 2,
-               viewportY + (VIEWPORT_HEIGHT - 8 * CELL_HEIGHT) / 2,
-               20 * CELL_WIDTH, 8 * CELL_HEIGHT, BLACK, 8, BLUE);
+                         viewportY + (VIEWPORT_HEIGHT - 8 * CELL_HEIGHT) / 2,
+                         20 * CELL_WIDTH, 8 * CELL_HEIGHT, BLACK, 8, BLUE);
 
   drawText(text, length, viewportX + (VIEWPORT_WIDTH - length * CELL_WIDTH) / 2,
            viewportY + (VIEWPORT_HEIGHT - 4 * CELL_HEIGHT) / 2, BLACK);
@@ -357,10 +360,10 @@ void drawGameFinishedScreen(char* text, int length, int finalScore) {
 
 void resumeGame() {
   resumeTimer(&state.timeLeft);
-  runGame();
+  runGameLoop();
 }
 
-void pauseGame() { pauseTimer(&state.timeLeft);}
+void pauseGame() { pauseTimer(&state.timeLeft); }
 
 void viewGameMenu() {
   pauseGame();
@@ -379,14 +382,9 @@ void viewGameMenu() {
   runMenuButtonEvent(&gameMenu, mainMenu.selectedButton);
 }
 
-void runGameFirstTime() {
-  drawGuiLabels();
-  startTimer(&state.timeLeft);
-  runGame();
-}
-
-void runGame() {
+void runGameLoop() {
   drawInitialGameMap(&state.gameMap);
+  drawGameMapObject(&state.gameMap, &player);
 
   int score;
 
@@ -404,20 +402,20 @@ void runGame() {
     }
 
     // Add value packs to the map 10 seconds after the game starts
-    if (!state.valuePacksAdded &&
-        (double)(clock() - state.valuePackAddTime) / CLOCKS_PER_SEC >= 10) {
+    if (!state.powerupsAdded &&
+        (double)(clock() - state.powerupAddTime) / CLOCKS_PER_SEC >= 10) {
       for (int i = 0; i < state.numValue; i++) {
-        addGameObject(&state.gameMap, &state.valuePacks[i]);
-        drawGameMapObject(&state.gameMap, &state.valuePacks[i]);
+        addGameObject(&state.gameMap, &state.powerups[i]);
+        drawGameMapObject(&state.gameMap, &state.powerups[i]);
       }
-      state.valuePacksAdded = TRUE;
+      state.powerupsAdded = TRUE;
     }
 
     // Value pack speed effect
-    if (state.valuePackEffect &&
-        (double)(clock() - state.valuePackSpeedTime) / CLOCKS_PER_SEC >= 6) {
+    if (state.powerupInEffect &&
+        (double)(clock() - state.powerupSpeedTime) / CLOCKS_PER_SEC >= 6) {
       setPlayerSpeed(PLAYER_DEFAULT_SPEED);
-      state.valuePackEffect = FALSE;
+      state.powerupInEffect = FALSE;
     }
 
     if (checkLevelWin()) {
@@ -427,14 +425,14 @@ void runGame() {
         state.currentLevel++;
 
         clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
-        generateRandomMap(&state.gameMap);
+        generateRandomMap();
         drawInitialGameMap(&state.gameMap);
 
         setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
         drawGameMapObject(&state.gameMap, &player);
 
-        state.valuePacksAdded = FALSE;
-        state.valuePackAddTime = clock();
+        state.powerupsAdded = FALSE;
+        state.powerupAddTime = clock();
       }
     } else if (checkLoss()) {
       state.lose = TRUE;
@@ -448,8 +446,8 @@ void runGame() {
     state.lose = FALSE;
   }
   state.currentLevel = 1;
-  state.valuePackEffect = FALSE;
-  state.valuePacksAdded = FALSE;
+  state.powerupInEffect = FALSE;
+  state.powerupsAdded = FALSE;
 }
 
 void quitGame() {
@@ -457,9 +455,20 @@ void quitGame() {
   exit(0);
 }
 
+void startNewGame() {
+  resetGameState();
+  generateRandomMap();
+
+  drawGuiLabels();
+  startTimer(&state.timeLeft);
+  state.powerupAddTime = clock();
+  setGameObjectPos(&player, PLAYER_START_X, PLAYER_START_Y);
+  runGameLoop();
+}
+
 void initMainMenu() {
   initMenu(&mainMenu);
-  addMenuButton(&mainMenu, "start", runGameFirstTime);
+  addMenuButton(&mainMenu, "start", startNewGame);
   addMenuButton(&mainMenu, "quit", quitGame);
   mainMenu.posY = viewportY + 350;
 }
@@ -481,8 +490,25 @@ void viewMainMenu() {
 
 void initGameMenu() {
   initMenu(&gameMenu);
-  addMenuButton(&gameMenu, "restart", runGameFirstTime);
+  addMenuButton(&gameMenu, "restart", startNewGame);
   addMenuButton(&gameMenu, "quit", viewMainMenu);
+}
+
+void resetGameState() {
+  memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
+  memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
+  memset(&state.powerups, 0, sizeof(state.powerups));
+
+  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
+
+  // If the size of the screen isn't perfectly divisible by the cell height,
+  // offset the map by that amount
+  state.lives = 4;
+  state.win = FALSE;
+  state.lose = FALSE;
+  state.currentLevel = 1;
+  state.powerupInEffect = FALSE;
+  state.powerupsAdded = FALSE;
 }
 
 void initGame() {
@@ -495,20 +521,11 @@ void initGame() {
                  marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);
   addGameObject(&state.gameMap, &player);
 
-  generateRandomMap();
+  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, plant.width,
+                  plant.height, 1, 2, 32, 32, 6, 5, WHITE);
 
-  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, plant.width, plant.height,
-   1, 2, 32, 32,
-                  6, 5, WHITE);
-
-  //If the size of the screen isn't perfectly divisible by the cell height, offset the map by that amount
   state.gameMap.posY += VIEWPORT_HEIGHT % CELL_HEIGHT;
   state.timeLeft.secondsAllowed = 3 * 60;  // seconds
-  state.lives = 4;
-  state.currentLevel = 1;
-  state.valuePackAddTime = clock();
-  state.valuePackEffect = FALSE;
-  state.valuePacksAdded = FALSE;
 }
 
 int main(int argc, char* argv[]) {
