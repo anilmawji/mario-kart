@@ -58,7 +58,7 @@ struct GameState {
   int numStatic;
 
   struct GameObject powerups[MAX_POWERUPS];
-  int numValue;
+  int numPowerups;
 
   Timer timeLeft;
   int lives;
@@ -109,6 +109,7 @@ int checkLoss() {
 int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 
 void addMovingObstacle(struct GameObject* obj, int x) {
+  //Draw road
   for (int y = 0; y < MAP_HEIGHT; y++) {
     state.gameMap.backgroundMap[y][x] = GREY;
   }
@@ -140,34 +141,39 @@ void addFinishLine() {
 void generateRandomMap() {
   int numMoving = 0;
   int numStatic = 0;
-  int numValue = 0;
-  int chance;
+  int numPowerups = 0;
+  int objType;
   int prevX;
   struct GameObject* obj;
 
   srand(time(0));
 
   for (int x = 3; x < MAP_WIDTH - 3; x++) {
-    chance = rand() % 5;
-    if (chance >= 2 && numMoving + 1 < MAX_MOVING_OBSTACLES) {
+    objType = rand() % 5;
+    if (objType >= 2 && numMoving + 1 < MAX_MOVING_OBSTACLES) {
       addMovingObstacle(&state.movingObstacles[numMoving], x);
       numMoving++;
-    } else if (chance >= 1 && numStatic + 1 < MAX_STATIC_OBSTACLES) {
+
+    } else if (objType >= 1 && numStatic + 1 < MAX_STATIC_OBSTACLES) {
       for (int y = 0; y < MAP_HEIGHT; y++) {
-        chance = rand() % 10;
-        if (chance <= 3) {
+        objType = rand() % 10;
+        if (objType <= 3) {
           obj = &state.staticObstacles[numStatic];
+
           initGameObject(obj, x, y, STATIC_OBSTACLE, (short*)plant.pixel_data,
                          WHITE, MV_DOWN, 0);
           addGameObject(&state.gameMap, obj);
+
           obj->spriteSheet = &plantSprites;
           obj->updateInterval = 0.4 + (rand() % 4) * 0.1;
+
           numStatic++;
-        } else if (chance <= 4 && prevX != x && x >= 3 &&
-                   numValue < MAX_POWERUPS) {
-          initGameObject(&state.powerups[numValue], x, y, POWERUP,
+        } else if (objType <= 4 && prevX != x && x >= 3 &&
+                   numPowerups < MAX_POWERUPS) {
+          initGameObject(&state.powerups[numPowerups], x, y, POWERUP,
                          powerupSprite, WHITE, MV_DOWN, 0);
-          numValue++;
+
+          numPowerups++;
           prevX = x;
         }
       }
@@ -175,7 +181,7 @@ void generateRandomMap() {
   }
   state.numMoving = numMoving;
   state.numStatic = numStatic;
-  state.numValue = numValue;
+  state.numPowerups = numPowerups;
 
   addFinishLine();
 }
@@ -210,11 +216,11 @@ int updateGameObject(struct GameObject* obj) {
     }
     obj->lastUpdateTime = clock();
 
-    // Only update object position if it isn't going to collide with an
-    // object
+    // Only update object position if it changed
     if (newX != obj->posX || newY != obj->posY) {
       // Loop back to top of screen
       if (newY == MAP_HEIGHT - 1) {
+        // Pick random moving object speed
         obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
         setGameObjectPos(&state.gameMap, obj, obj->posX, 0);
       } else {
@@ -288,11 +294,12 @@ void updatePlayer() {
     newX = clampUtil(player.posX + 1, 0, MAP_WIDTH - 1);
   }
 
-  // Only update player position if they aren't going to collide with an object
+  // Only update player position if it changed
   if (newX != player.posX || newY != player.posY) {
     int objId = state.gameMap.objectMap[newY][newX];
 
     if (objId == MOVING_OBSTACLE || objId == STATIC_OBSTACLE) {
+      // Player collided with an obstacle
       respawnPlayer();
     } else {
       if (objId == POWERUP) {
@@ -401,7 +408,7 @@ void runGameLoop() {
     // Add value packs to the map 10 seconds after the game starts
     if (!state.powerupsAdded &&
         (double)(clock() - state.levelStartTime) / CLOCKS_PER_SEC >= 10) {
-      for (int i = 0; i < state.numValue; i++) {
+      for (int i = 0; i < state.numPowerups; i++) {
         addGameObject(&state.gameMap, &state.powerups[i]);
         drawGameMapObject(&state.gameMap, &state.powerups[i]);
       }
@@ -462,7 +469,6 @@ void viewMainMenu() {
   drawImage(menuTitle, viewportX + (VIEWPORT_WIDTH - menu_title.width) / 2,
             viewportY + 100, menu_title.width, menu_title.height, BLACK, GREEN);
   // Draw buttons
-  mainMenu.selectedButton = 0;
   drawInitialMenu(&mainMenu, TRUE);
 
   while (!isButtonPressed(A)) {

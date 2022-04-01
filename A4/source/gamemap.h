@@ -27,20 +27,12 @@ void removeGameObject(struct GameMap* map, struct GameObject* obj);
 void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
                       int posY);
 
-void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj);
-
-void updateGameMap(struct GameMap* map);
-
-void updateGameMapObject(struct GameMap* map, struct GameObject* obj);
-
-void drawGameMapObject(struct GameMap* map, struct GameObject* obj);
-
 void printGameMap(struct GameMap* map);
 
 void printObjectMap(struct GameMap* map);
 
-int getCellColor(int cellId);
+void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj);
 
-void drawGameMap(struct GameMap* map);
+void drawGameMapObject(struct GameMap* map, struct GameObject* obj);
 
 void drawInitialGameMap(struct GameMap* map);
