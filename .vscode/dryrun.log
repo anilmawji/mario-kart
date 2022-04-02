@@ -1,6 +1,7 @@
 make --dry-run --always-make --keep-going --print-directory
 make: Entering directory '/home/pi/Documents/git-repos/mario-kart'
-make: Leaving directory '/home/pi/Documents/git-repos/mario-kart'
  
 make: *** No targets specified and no makefile found.  Stop.
 
+make: Leaving directory '/home/pi/Documents/git-repos/mario-kart'
+ 

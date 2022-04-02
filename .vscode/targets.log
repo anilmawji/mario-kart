@@ -8,7 +8,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Mar 30 21:30:13 2022
+# Make data base, printed on Sat Apr  2 16:34:43 2022
 
 # Variables
 
@@ -61,7 +61,7 @@ DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-4e836c94-db33-459f-8d85-e3c69dac75a9.sock
+VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-0835952f-253d-49d6-8e49-15d5b21c972b.sock
 # environment
 VSCODE_CWD = /home/pi
 # environment
@@ -71,7 +71,7 @@ MAKE_HOST := arm-unknown-linux-gnueabihf
 # environment
 PATH = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games
 # environment
-_LXSESSION_PID = 582
+_LXSESSION_PID = 596
 # environment
 GPG_AGENT_INFO = /run/user/1000/gnupg/S.gpg-agent:0:1
 # environment
@@ -93,7 +93,7 @@ LS_COLORS = rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:
 # environment
 XDG_SESSION_DESKTOP = lightdm-xsession
 # environment
-SSH_AUTH_SOCK = /tmp/ssh-p895UWYE7ldU/agent.582
+SSH_AUTH_SOCK = /tmp/ssh-FfljkFNkziZv/agent.596
 # automatic
 %F = $(notdir $%)
 # environment
@@ -109,7 +109,7 @@ QT_QPA_PLATFORMTHEME = qt5ct
 # environment
 XDG_SEAT = seat0
 # environment
-SSH_AGENT_PID = 641
+SSH_AGENT_PID = 655
 # environment
 ORIGINAL_XDG_CURRENT_DESKTOP = LXDE
 # environment
@@ -209,7 +209,7 @@ LANG = C
 # environment
 TERM = xterm-256color
 # environment
-VSCODE_PID = 1213
+VSCODE_PID = 2216
 # variable set hash-table stats:
 # Load=99/1024=10%, Rehash=0, Collisions=10/121=8%
 
@@ -257,6 +257,7 @@ makefile:
 #  File has not been updated.
 
 # Not a target:
+ 
 GNUmakefile:
 #  Implicit rule search has been done.
 #  File does not exist.
@@ -277,6 +278,6 @@ GNUmakefile:
 # strcache performance: lookups = 17 / hit rate = 17%
 # hash-table stats:
 # Load=14/8192=0%, Rehash=0, Collisions=1/17=6%
-# Finished Make data base on Wed Mar 30 21:30:13 2022
+# Finished Make data base on Sat Apr  2 16:34:43 2022
 
  

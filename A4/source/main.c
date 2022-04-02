@@ -36,7 +36,7 @@
 #include "utils.h"
 
 #define BUFFER_SIZE 20
-#define SCORE_CONST 10
+#define SCORE_CONST 20
 #define PLAYER_DEFAULT_SPEED 1.2
 #define PLAYER_START_X 1
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
@@ -337,7 +337,7 @@ void drawGuiLabels() {
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
-void resetGameState() {
+void resetGameState() {//unsaved change
   // Remove all obstacles and powerups
   memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
   memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));

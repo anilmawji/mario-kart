@@ -49,15 +49,32 @@ void removeGameObject(struct GameMap* map, struct GameObject* obj) {
   map->objects[obj->index] = NULL;
 }
 
+void eraseGameMapObject(struct GameMap* map, struct GameObject* obj) {
+  int cellX = map->posX + obj->posX * CELL_WIDTH;
+  int cellY = map->posY + obj->posY * CELL_HEIGHT;
+
+  // Erase the object from the old position
+  drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+               map->backgroundMap[obj->posY][obj->posX]);
+}
+
+// TODO: Split into 2 functions, erase and draw
+void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
+  int cellX = map->posX + obj->posX * CELL_WIDTH;
+  int cellY = map->posY + obj->posY * CELL_HEIGHT;
+
+  // Draw the object in the new position
+  drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+            obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
+}
+
+// Updates the location of the object in the object map
 void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX, int posY) {
-  obj->prevPosX = obj->posX;
-  obj->prevPosY = obj->posY;
+  eraseGameMapObject(map, obj);
   
+  map->objectMap[obj->posY][obj->posX] = -1;
   obj->posX = posX;
   obj->posY = posY;
-
-  // Update the location of the object in the object map
-  map->objectMap[obj->prevPosY][obj->prevPosX] = -1;
   map->objectMap[obj->posY][obj->posX] = obj->id;
 }
 
@@ -94,23 +111,6 @@ void printObjectMap(struct GameMap* map) {
     printf("\n");
   }
   printf("\n\n");
-}
-
-// TODO: Split into 2 functions, erase and draw
-void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
-  int cellX = map->posX + obj->prevPosX * CELL_WIDTH;
-  int cellY = map->posY + obj->prevPosY * CELL_HEIGHT;
-
-  // Erase the object from the old position
-  drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-               map->backgroundMap[obj->prevPosY][obj->prevPosX]);
-
-  cellX = map->posX + obj->posX * CELL_WIDTH;
-  cellY = map->posY + obj->posY * CELL_HEIGHT;
-
-  // Draw the object in the new position
-  drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-            obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
 }
 
 void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
