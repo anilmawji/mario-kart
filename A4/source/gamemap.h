@@ -9,6 +9,8 @@ struct GameMap {
   int posX;
   int posY;
 
+  struct SpriteSheet* spriteSheet;
+
   int backgroundMap[MAP_HEIGHT][MAP_WIDTH];
   int objectMap[MAP_HEIGHT][MAP_WIDTH];
 
@@ -16,7 +18,7 @@ struct GameMap {
   int numObjects;
 };
 
-void initGameMap(struct GameMap* map, int posX, int posY);
+void initGameMap(struct GameMap* map, int posX, int posY, struct SpriteSheet* sheet);
 
 void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor);
 

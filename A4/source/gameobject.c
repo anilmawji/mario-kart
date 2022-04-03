@@ -12,7 +12,9 @@
 #define TRUE 1
 #define FALSE 0
 
-void initGameObject(struct GameObject* obj, int posX, int posY, int id, struct SpriteSheet* sheet, int spriteTileX, int spriteTileY, Direction dir, int speed) {
+void initGameObject(struct GameObject* obj, int posX, int posY, int id,
+                    struct SpriteSheet* sheet, int spriteTileX, int spriteTileY,
+                    Direction dir, int speed) {
   obj->width = CELL_WIDTH;
   obj->height = CELL_HEIGHT;
   obj->posX = posX;

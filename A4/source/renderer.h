@@ -33,13 +33,19 @@ void drawImage(short int *pixelData, int posX, int posY, int width, int height,
                int oldBgColor, int newBgColor);
 
 void drawCroppedImage(short int *pixelData, int posX, int posY, int oldWidth,
-                      int oldHeight, int startX, int startY, int endX, int endY,
+                      int startX, int startY, int endX, int endY,
                       int oldBgColor, int newBgColor);
 
 void drawSpriteSheet(struct SpriteSheet *sheet, int posX, int posY);
 
 void drawSpriteTile(struct SpriteSheet *sheet, int posX, int posY, int tileX,
                     int tileY, int newBgColor);
+
+int getSpriteTileX(struct SpriteSheet *sheet, int tileNum);
+
+int getSpriteTileY(struct SpriteSheet *sheet, int tileNum);
+
+int getNumTiles(struct SpriteSheet *sheet);
 
 void initSpriteSheet(struct SpriteSheet *sheet, short *pixelData, int width,
                      int height, int rows, int cols, int tileWidth,

@@ -22,29 +22,42 @@
 #include "color.h"
 #include "config.h"
 #include "controller.h"
+#include "gameassets.h"
 #include "gamemap.h"
 #include "gameobject.h"
 #include "gpio.h"
 #include "menu.h"
 #include "menuassets.h"
 #include "renderer.h"
-#include "gameassets.h"
 #include "timer.h"
 #include "utils.h"
 
 #define BUFFER_SIZE 20
-#define SCORE_CONST 12
+#define SCORE_CONST 1
+
+#define GRASS_TILE_ID 16
+#define ROAD_TILE_ID 17
+
 #define PLAYER_DEFAULT_SPEED 1.2
 #define PLAYER_START_X 1
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
+
 #define MAX_STATIC_OBSTACLES 100
 #define MAX_MOVING_OBSTACLES 50
 #define MAX_POWERUPS 8
-#define SPEED_POWERUP (PLAYER_DEFAULT_SPEED * 2)
-#define TIME_POWERUP 30
-#define POWERUP_SPAWN_TIME 1
 
-enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, POWERUP };
+#define POWERUP_SPEED (PLAYER_DEFAULT_SPEED * 2)
+#define POWERUP_TIME_ADDED 30
+#define POWERUP_SPAWN_TIME 10
+
+// Values must be sufficiently large to avoid conflicting with spritesheet
+// tiles, which are identified by their position (tileNum) in the spritesheet
+enum ObjectTypes {
+  PLAYER = 111,
+  MOVING_OBSTACLE = 222,
+  STATIC_OBSTACLE = 333,
+  POWERUP = 444
+};
 
 struct GameState {
   struct GameMap gameMap;
@@ -102,7 +115,7 @@ int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 void addMovingObstacle(struct GameObject* obj, int x) {
   // Draw road
   for (int y = 0; y < MAP_HEIGHT; y++) {
-    state.gameMap.backgroundMap[y][x] = GREY;
+    state.gameMap.backgroundMap[y][x] = ROAD_TILE_ID;
   }
 
   initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSprites, 0, 1, MV_DOWN, 2);
@@ -260,9 +273,9 @@ void activatePowerup() {
   if (type <= 3) {
     state.lives++;
   } else if (type <= 6) {
-    state.timeLeft.secondsAllowed += TIME_POWERUP;
+    state.timeLeft.secondsAllowed += POWERUP_TIME_ADDED;
   } else {
-    setPlayerSpeed(SPEED_POWERUP);
+    setPlayerSpeed(POWERUP_SPEED);
     state.powerupStartTime = clock();
     state.powerupInEffect = TRUE;
   }
@@ -334,7 +347,7 @@ void resetGameState() {
   memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
   memset(&state.powerups, 0, sizeof(state.powerups));
 
-  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
+  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GRASS_TILE_ID);
 
   // Set fields to defaults
   state.lives = 4;
@@ -380,7 +393,7 @@ void runGameLoop() {
 
   while (!state.win && !state.lose) {
     // double start = clock(); //rough performance test
-    //  printGameMap(&state.gameMap);
+    //   printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
     updateMovingObstacles();
@@ -420,7 +433,7 @@ void runGameLoop() {
       } else {
         state.currentLevel++;
 
-        clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GREEN);
+        clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GRASS_TILE_ID);
         generateRandomMap();
         drawInitialGameMap(&state.gameMap);
 
@@ -493,7 +506,7 @@ void viewGameMenu() {
 }
 
 void initGame() {
-  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT);
+  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, &gameSprites);
 
   // Init main menu
   initMenu(&mainMenu);

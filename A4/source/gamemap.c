@@ -13,9 +13,11 @@
 #define TRUE 1
 #define FALSE 0
 
-void initGameMap(struct GameMap* map, int posX, int posY) {
+void initGameMap(struct GameMap* map, int posX, int posY,
+                 struct SpriteSheet* sheet) {
   map->posX = posX;
   map->posY = posY;
+  map->spriteSheet = sheet;
   map->numObjects = 0;
 }
 
@@ -50,13 +52,18 @@ void removeGameObject(struct GameMap* map, struct GameObject* obj) {
   map->objects[obj->index] = NULL;
 }
 
-void eraseGameMapObject(struct GameMap* map, struct GameObject* obj) {
-  int cellX = map->posX + obj->posX * CELL_WIDTH;
-  int cellY = map->posY + obj->posY * CELL_HEIGHT;
+void drawBackgroundTile(struct GameMap* map, int posX, int posY) {
+  int cellX = map->posX + posX * CELL_WIDTH;
+  int cellY = map->posY + posY * CELL_HEIGHT;
 
-  // Erase the object from the old position
-  drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-               map->backgroundMap[obj->posY][obj->posX]);
+  int tileId = map->backgroundMap[posY][posX];
+  int tileX = getSpriteTileX(map->spriteSheet, tileId);
+  int tileY = getSpriteTileY(map->spriteSheet, tileId);
+
+  drawSpriteTile(map->spriteSheet, cellX, cellY, tileX, tileY, TRANSPARENT);
+
+  // drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+  // map->backgroundMap[posY][posX]);
 }
 
 void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
@@ -71,7 +78,7 @@ void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
 // Updates the location of the object in the object map
 void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
                       int posY) {
-  eraseGameMapObject(map, obj);
+  drawBackgroundTile(map, obj->posX, obj->posY);
 
   map->objectMap[obj->posY][obj->posX] = -1;
   obj->posX = posX;
@@ -131,32 +138,19 @@ void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
 */
 
 void drawInitialGameMap(struct GameMap* map) {
-  int cellX;
-  int cellY;
+  int maxTileId = getNumTiles(map->spriteSheet);
 
   // Draw background tiles
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      if (map->objectMap[y][x] == -1) {
-        cellX = map->posX + x * CELL_WIDTH;
-        cellY = map->posY + y * CELL_HEIGHT;
-
-        drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                     map->backgroundMap[y][x]);
+      if (map->objectMap[y][x] <= maxTileId) {
+        drawBackgroundTile(map, x, y);
       }
     }
   }
 
-  struct GameObject* obj;
-
   // Draw object tiles
   for (int i = 0; i < map->numObjects; i++) {
-    obj = map->objects[i];
-
-    cellX = map->posX + obj->posX * CELL_WIDTH;
-    cellY = map->posY + obj->posY * CELL_HEIGHT;
-
-    drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
-                   obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
+    drawGameMapObject(map, map->objects[i]);
   }
 }

@@ -99,7 +99,7 @@ void drawImage(short int* pixelData, int posX, int posY, int width, int height,
       pixel->x = posX + x;
       pixel->y = posY + y;
 
-      //sprintf("%d\n", pixelData[i]);
+      // sprintf("%d\n", pixelData[i]);
 
       drawPixel(pixel);
       i++;
@@ -107,9 +107,31 @@ void drawImage(short int* pixelData, int posX, int posY, int width, int height,
   }
 }
 
+void drawCroppedImageDynamicBackground(short* pixelData, int posX, int posY,
+                                       int origWidth, int startX, int startY,
+                                       int width, int height, int oldBgColor,
+                                       short* bgPixelData) {
+  int offset = startY * origWidth + startX;
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      if (pixelData[offset + x] == oldBgColor) {
+        pixel->color = bgPixelData[offset + x];
+      } else {
+        pixel->color = pixelData[offset + x];
+      }
+      pixel->x = x + posX;
+      pixel->y = y + posY;
+
+      drawPixel(pixel);
+    }
+    offset += origWidth;
+  }
+}
+
 void drawCroppedImage(short* pixelData, int posX, int posY, int origWidth,
-                       int origHeight, int startX, int startY, int width,
-                       int height, int oldBgColor, int newBgColor) {
+                      int startX, int startY, int width, int height,
+                      int oldBgColor, int newBgColor) {
   // Find the index of the first pixel in the 1D array
   int offset = startY * origWidth + startX;
 
@@ -121,7 +143,7 @@ void drawCroppedImage(short* pixelData, int posX, int posY, int origWidth,
       } else {
         pixel->color = pixelData[offset + x];
       }
-      //Ofset image by the desired position
+      // Ofset image by the desired position
       pixel->x = x + posX;
       pixel->y = y + posY;
 
@@ -141,13 +163,13 @@ void drawSpriteSheet(struct SpriteSheet* sheet, int posX, int posY) {
 }
 
 void drawSpriteTile(struct SpriteSheet* sheet, int posX, int posY, int tileX,
-                     int tileY, int newBgColor) {
+                    int tileY, int newBgColor) {
   int startX = (tileX + 1) * sheet->paddingX + tileX * sheet->tileWidth;
   int startY = (tileY + 1) * sheet->paddingY + tileY * sheet->tileHeight;
 
-  drawCroppedImage(sheet->pixelData, posX, posY, sheet->width, sheet->height,
-                    startX, startY, sheet->tileWidth, sheet->tileHeight,
-                    sheet->backgroundColor, newBgColor);
+  drawCroppedImage(sheet->pixelData, posX, posY, sheet->width, startX, startY,
+                   sheet->tileWidth, sheet->tileHeight, sheet->backgroundColor,
+                   newBgColor);
 }
 
 void drawText(char* text, int length, int posX, int posY, int bgColor) {
@@ -156,11 +178,23 @@ void drawText(char* text, int length, int posX, int posY, int bgColor) {
   for (int i = 0; i < length; i++) {
     if (text[i] != ' ') {
       ch = toupper(text[i]);
-      drawSpriteTile(&fontSheet, posX, posY, fontMap[ch][0], fontMap[ch][1], bgColor);
+      drawSpriteTile(&fontSheet, posX, posY, fontMap[ch][0], fontMap[ch][1],
+                     bgColor);
     }
     posX += fontSheet.tileWidth;
   }
 }
+
+int getSpriteTileX(struct SpriteSheet* sheet, int tileNum) {
+  return tileNum % sheet->cols;
+}
+
+int getSpriteTileY(struct SpriteSheet* sheet, int tileNum) {
+  return tileNum / sheet->cols;
+}
+
+//Returns the number of tiles in the spritesheet
+int getNumTiles(struct SpriteSheet* sheet) { return sheet->rows * sheet->cols; }
 
 void initFontMap() {
   initSpriteSheet(&fontSheet, (short*)font_sprite.pixel_data, 720, 380, 3, 13,
@@ -169,8 +203,8 @@ void initFontMap() {
   // Precompute the location of each symbol in the sprite sheet
   for (int i = 0; i < NUM_SYMBOLS; i++) {
     int ch = symbols[i];
-    fontMap[ch][0] = i % fontSheet.cols; // tileX
-    fontMap[ch][1] = i / fontSheet.cols; // tileY
+    fontMap[ch][0] = getSpriteTileX(&fontSheet, i);
+    fontMap[ch][1] = getSpriteTileY(&fontSheet, i);
   }
 }
 
