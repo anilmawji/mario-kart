@@ -9,16 +9,13 @@ struct GameObject {
 
   int posX;
   int posY;
-
-  short* sprite;      // temp
-  int spriteBgColor;  // temp
   Direction dir;
 
   struct SpriteSheet* spriteSheet;
   int spriteTileX;
   int spriteTileY;
 
-  int speed;             // unused
+  int speed;
   float lastUpdateTime;  // Measured in milliseconds
   float updateInterval;
 };

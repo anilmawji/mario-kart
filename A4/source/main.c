@@ -19,20 +19,16 @@
 #include <unistd.h>
 #include <wiringPi.h>
 
-#include "bowserassets.h"
 #include "color.h"
 #include "config.h"
 #include "controller.h"
 #include "gamemap.h"
 #include "gameobject.h"
 #include "gpio.h"
-#include "marioassets.h"
 #include "menu.h"
 #include "menuassets.h"
-#include "objectassets.h"
-#include "plants.h"
 #include "renderer.h"
-#include "spritesheet.h"
+#include "gameassets.h"
 #include "timer.h"
 #include "utils.h"
 
