@@ -121,7 +121,13 @@ void addMovingObstacle(struct GameObject* obj, int x) {
     state.gameMap.backgroundMap[y][x] = ROAD_TILE_ID;
   }
 
-  initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSprites, 0, 1, MV_DOWN, 2);
+  // Pick random move direction (up or down)
+  if (rand() % 2 == 0) {
+    initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSprites, 0, 1, MV_DOWN, 2);
+  } else {
+    initGameObject(obj, x, MAP_HEIGHT - 1, MOVING_OBSTACLE, &gameSprites, 0, 1,
+                   MV_UP, 2);
+  }
   addGameObject(&state.gameMap, obj);
 
   obj->updateInterval = 0.05 + (rand() % 3) * 0.1;
@@ -208,27 +214,44 @@ int updateGameObject(struct GameObject* obj) {
 
     switch (obj->dir) {
       case MV_UP:
-        newY = clampUtil(obj->posY - 1, 0, MAP_HEIGHT - 1);
+        newY = obj->posY - 1;
         break;
       case MV_DOWN:
-        newY = clampUtil(obj->posY + 1, 0, MAP_HEIGHT - 1);
+        newY = obj->posY + 1;
         break;
       case MV_LEFT:
-        newX = clampUtil(obj->posX - 1, 0, MAP_WIDTH - 1);
+        newX = obj->posX - 1;
         break;
       case MV_RIGHT:
-        newX = clampUtil(obj->posX - 1, 0, MAP_WIDTH - 1);
+        newX = obj->posX - 1;
         break;
     }
     obj->lastUpdateTime = clock();
 
     // Only update object position if it changed
     if (newX != obj->posX || newY != obj->posY) {
-      // Loop back to top of screen
-      if (newY == MAP_HEIGHT - 1) {
+      if (obj->dir == MV_DOWN && newY > MAP_HEIGHT - 1) {
         // Pick random moving object speed
         obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
-        setGameObjectPos(&state.gameMap, obj, obj->posX, 0);
+        if (rand() % 2 == 0) {
+          // Loop back to top of screen
+          setGameObjectPos(&state.gameMap, obj, obj->posX, 0);
+        } else {
+          // Random chance of switching direction
+          obj->dir = MV_UP;
+          setGameObjectPos(&state.gameMap, obj, obj->posX, MAP_HEIGHT - 1);
+        }
+      } else if (obj->dir == MV_UP && newY < 0) {
+        // Pick random moving object speed
+        obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
+        if (rand() % 2 == 0) {
+          // Loop back to bottom of screen
+          setGameObjectPos(&state.gameMap, obj, obj->posX, MAP_HEIGHT - 1);
+        } else {
+          // Random chance of switching direction
+          obj->dir = MV_DOWN;
+          setGameObjectPos(&state.gameMap, obj, obj->posX, 0);
+        }
       } else {
         setGameObjectPos(&state.gameMap, obj, newX, newY);
       }
@@ -313,7 +336,7 @@ void updatePlayer() {
       if (objId == POWERUP) {
         // Remove value pack from map
         // Memory is cleared out from gameMap->objects when the level ends
-        state.gameMap.objectMap[newY][newX] = -1;
+        state.gameMap.objectMap[newY][newX] = NO_OBJECT;
         activatePowerup();
       }
       setGameObjectPos(&state.gameMap, &player, newX, newY);

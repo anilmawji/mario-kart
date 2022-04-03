@@ -25,7 +25,7 @@ void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
   for (int y = 0; y < maxY; y++) {
     for (int x = 0; x < maxX; x++) {
       map->backgroundMap[y][x] = bgColor;
-      map->objectMap[y][x] = -1;
+      map->objectMap[y][x] = NO_OBJECT;
     }
   }
 
@@ -48,7 +48,7 @@ void addGameObject(struct GameMap* map, struct GameObject* obj) {
 }
 
 void removeGameObject(struct GameMap* map, struct GameObject* obj) {
-  map->objectMap[obj->posY][obj->posX] = -1;
+  map->objectMap[obj->posY][obj->posX] = NO_OBJECT;
   map->objects[obj->index] = NULL;
 }
 
@@ -71,7 +71,7 @@ void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
   int bgTileX = getSpriteTileX(map->spriteSheet, bgTileId);
   int bgTileY = getSpriteTileY(map->spriteSheet, bgTileId);
 
-  drawSpriteTileDynamicBackground(obj->spriteSheet, cellX, cellY,
+  drawOverlayedSpriteTiles(obj->spriteSheet, cellX, cellY,
                                   obj->spriteTileX + obj->dir, obj->spriteTileY,
                                   map->spriteSheet, bgTileX, bgTileY);
 }
@@ -81,7 +81,7 @@ void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
                       int posY) {
   drawBackgroundTile(map, obj->posX, obj->posY);
 
-  map->objectMap[obj->posY][obj->posX] = -1;
+  map->objectMap[obj->posY][obj->posX] = NO_OBJECT;
   obj->posX = posX;
   obj->posY = posY;
   map->objectMap[obj->posY][obj->posX] = obj->id;
@@ -90,7 +90,7 @@ void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
 void printGameMap(struct GameMap* map) {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      if (map->objectMap[y][x] == -1) {
+      if (map->objectMap[y][x] == NO_OBJECT) {
         switch (map->backgroundMap[y][x]) {
           case GREEN:
             printf("g ");
@@ -111,7 +111,7 @@ void printGameMap(struct GameMap* map) {
 void printObjectMap(struct GameMap* map) {
   for (int y = 0; y < MAP_HEIGHT; y++) {
     for (int x = 0; x < MAP_WIDTH; x++) {
-      if (map->objectMap[y][x] == -1) {
+      if (map->objectMap[y][x] == NO_OBJECT) {
         printf("_ ");
       } else {
         printf("O ");

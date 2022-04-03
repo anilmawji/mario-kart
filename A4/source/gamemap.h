@@ -4,6 +4,8 @@
 // Subtract 1 to make space for the row of gui labels on top
 #define MAP_HEIGHT (VIEWPORT_HEIGHT / CELL_HEIGHT - 1)
 #define MAX_OBJECTS 200
+// Used to represent the absence of an object in the objectMap
+#define NO_OBJECT -1
 
 struct GameMap {
   int posX;

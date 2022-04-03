@@ -29,19 +29,23 @@ void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize,
 void drawFillRectWithStroke(int posX, int posY, int width, int height,
                             int bgColor, int strokeSize, int strokeColor);
 
-void drawImage(short int *pixelData, int posX, int posY, int width, int height,
-               int oldBgColor, int newBgColor);
+void drawOverlayedCroppedImages(short *pixelData, int posX, int posY,
+                                int origWidth, int startX, int startY,
+                                int width, int height, int oldBgColor,
+                                short *bgPixelData, int bgStartX, int bgStartY);
 
 void drawCroppedImage(short int *pixelData, int posX, int posY, int oldWidth,
                       int startX, int startY, int endX, int endY,
                       int oldBgColor, int newBgColor);
 
+void drawImage(short int *pixelData, int posX, int posY, int width, int height,
+               int oldBgColor, int newBgColor);
+
 void drawSpriteSheet(struct SpriteSheet *sheet, int posX, int posY);
 
-void drawSpriteTileDynamicBackground(struct SpriteSheet *sheet, int posX,
-                                     int posY, int tileX, int tileY,
-                                     struct SpriteSheet *bgSheet, int bgTileX,
-                                     int bgTileY);
+void drawOverlayedSpriteTiles(struct SpriteSheet *sheet, int posX, int posY,
+                              int tileX, int tileY, struct SpriteSheet *bgSheet,
+                              int bgTileX, int bgTileY);
 
 void drawSpriteTile(struct SpriteSheet *sheet, int posX, int posY, int tileX,
                     int tileY, int newBgColor);

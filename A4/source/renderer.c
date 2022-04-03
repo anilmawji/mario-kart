@@ -107,11 +107,11 @@ void drawImage(short int* pixelData, int posX, int posY, int width, int height,
   }
 }
 
-void drawCroppedImageDynamicBackground(short* pixelData, int posX, int posY,
-                                       int origWidth, int startX, int startY,
-                                       int width, int height, int oldBgColor,
-                                       short* bgPixelData, int bgStartX,
-                                       int bgStartY) {
+void drawOverlayedCroppedImages(short* pixelData, int posX, int posY,
+                                int origWidth, int startX, int startY,
+                                int width, int height, int oldBgColor,
+                                short* bgPixelData, int bgStartX,
+                                int bgStartY) {
   int offset = startY * origWidth + startX;
   int bgOffset = bgStartY * origWidth + bgStartX;
 
@@ -175,7 +175,7 @@ void drawSpriteTile(struct SpriteSheet* sheet, int posX, int posY, int tileX,
                    newBgColor);
 }
 
-void drawSpriteTileDynamicBackground(struct SpriteSheet* sheet, int posX,
+void drawOverlayedSpriteTiles(struct SpriteSheet* sheet, int posX,
                                      int posY, int tileX, int tileY,
                                      struct SpriteSheet* bgSheet, int bgTileX, int bgTileY) {
   int startX = (tileX + 1) * sheet->paddingX + tileX * sheet->tileWidth;
@@ -184,7 +184,7 @@ void drawSpriteTileDynamicBackground(struct SpriteSheet* sheet, int posX,
   int bgStartX = (bgTileX + 1) * sheet->paddingX + bgTileX * sheet->tileWidth;
   int bgStartY = (bgTileY + 1) * sheet->paddingY + bgTileY * sheet->tileHeight;
 
-  drawCroppedImageDynamicBackground(sheet->pixelData, posX, posY, sheet->width,
+  drawOverlayedCroppedImages(sheet->pixelData, posX, posY, sheet->width,
                                     startX, startY, sheet->tileWidth,
                                     sheet->tileHeight, sheet->backgroundColor,
                                     bgSheet->pixelData, bgStartX, bgStartY);
