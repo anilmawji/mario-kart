@@ -110,13 +110,15 @@ void drawImage(short int* pixelData, int posX, int posY, int width, int height,
 void drawCroppedImageDynamicBackground(short* pixelData, int posX, int posY,
                                        int origWidth, int startX, int startY,
                                        int width, int height, int oldBgColor,
-                                       short* bgPixelData) {
+                                       short* bgPixelData, int bgStartX,
+                                       int bgStartY) {
   int offset = startY * origWidth + startX;
+  int bgOffset = bgStartY * origWidth + bgStartX;
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       if (pixelData[offset + x] == oldBgColor) {
-        pixel->color = bgPixelData[offset + x];
+        pixel->color = bgPixelData[bgOffset + x];
       } else {
         pixel->color = pixelData[offset + x];
       }
@@ -126,6 +128,7 @@ void drawCroppedImageDynamicBackground(short* pixelData, int posX, int posY,
       drawPixel(pixel);
     }
     offset += origWidth;
+    bgOffset += origWidth;
   }
 }
 
@@ -172,6 +175,21 @@ void drawSpriteTile(struct SpriteSheet* sheet, int posX, int posY, int tileX,
                    newBgColor);
 }
 
+void drawSpriteTileDynamicBackground(struct SpriteSheet* sheet, int posX,
+                                     int posY, int tileX, int tileY,
+                                     struct SpriteSheet* bgSheet, int bgTileX, int bgTileY) {
+  int startX = (tileX + 1) * sheet->paddingX + tileX * sheet->tileWidth;
+  int startY = (tileY + 1) * sheet->paddingY + tileY * sheet->tileHeight;
+
+  int bgStartX = (bgTileX + 1) * sheet->paddingX + bgTileX * sheet->tileWidth;
+  int bgStartY = (bgTileY + 1) * sheet->paddingY + bgTileY * sheet->tileHeight;
+
+  drawCroppedImageDynamicBackground(sheet->pixelData, posX, posY, sheet->width,
+                                    startX, startY, sheet->tileWidth,
+                                    sheet->tileHeight, sheet->backgroundColor,
+                                    bgSheet->pixelData, bgStartX, bgStartY);
+}
+
 void drawText(char* text, int length, int posX, int posY, int bgColor) {
   int ch;
 
@@ -193,7 +211,7 @@ int getSpriteTileY(struct SpriteSheet* sheet, int tileNum) {
   return tileNum / sheet->cols;
 }
 
-//Returns the number of tiles in the spritesheet
+// Returns the number of tiles in the spritesheet
 int getNumTiles(struct SpriteSheet* sheet) { return sheet->rows * sheet->cols; }
 
 void initFontMap() {

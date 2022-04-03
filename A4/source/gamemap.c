@@ -56,23 +56,24 @@ void drawBackgroundTile(struct GameMap* map, int posX, int posY) {
   int cellX = map->posX + posX * CELL_WIDTH;
   int cellY = map->posY + posY * CELL_HEIGHT;
 
-  int tileId = map->backgroundMap[posY][posX];
-  int tileX = getSpriteTileX(map->spriteSheet, tileId);
-  int tileY = getSpriteTileY(map->spriteSheet, tileId);
+  int bgTileId = map->backgroundMap[posY][posX];
+  int bgTileX = getSpriteTileX(map->spriteSheet, bgTileId);
+  int bgTileY = getSpriteTileY(map->spriteSheet, bgTileId);
 
-  drawSpriteTile(map->spriteSheet, cellX, cellY, tileX, tileY, TRANSPARENT);
-
-  // drawFillRect(cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-  // map->backgroundMap[posY][posX]);
+  drawSpriteTile(map->spriteSheet, cellX, cellY, bgTileX, bgTileY, TRANSPARENT);
 }
 
 void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
   int cellX = map->posX + obj->posX * CELL_WIDTH;
   int cellY = map->posY + obj->posY * CELL_HEIGHT;
 
-  // Draw the object in the new position
-  drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
-                 obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
+  int bgTileId = map->backgroundMap[obj->posY][obj->posX];
+  int bgTileX = getSpriteTileX(map->spriteSheet, bgTileId);
+  int bgTileY = getSpriteTileY(map->spriteSheet, bgTileId);
+
+  drawSpriteTileDynamicBackground(obj->spriteSheet, cellX, cellY,
+                                  obj->spriteTileX + obj->dir, obj->spriteTileY,
+                                  map->spriteSheet, bgTileX, bgTileY);
 }
 
 // Updates the location of the object in the object map

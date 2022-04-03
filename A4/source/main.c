@@ -35,6 +35,8 @@
 #define BUFFER_SIZE 20
 #define SCORE_CONST 1
 
+// Tile ids correspond to their location in the spritesheet
+// For a tile with an id of k, the tile must be the kth tile in the spritesheet
 #define GRASS_TILE_ID 16
 #define ROAD_TILE_ID 17
 
@@ -50,8 +52,9 @@
 #define POWERUP_TIME_ADDED 30
 #define POWERUP_SPAWN_TIME 10
 
-// Values must be sufficiently large to avoid conflicting with spritesheet
-// tiles, which are identified by their position (tileNum) in the spritesheet
+// Values must be at least as large as the number of tiles in the spritesheet
+// to avoid coflicting with background tile ids
+// Beyond that, the values are arbitrary
 enum ObjectTypes {
   PLAYER = 111,
   MOVING_OBSTACLE = 222,
