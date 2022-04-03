@@ -4,6 +4,7 @@
         "framebuffer.h": "c",
         "string.h": "c",
         "stdlib.h": "c",
-        "menuassets.h": "c"
+        "menuassets.h": "c",
+        "spritesheet.h": "c"
     }
 }

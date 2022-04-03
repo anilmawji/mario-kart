@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
+#include <time.h>
 
 #include "color.h"
 #include "config.h"
@@ -33,7 +33,8 @@ void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
 
 void addGameObject(struct GameMap* map, struct GameObject* obj) {
   // Useful for detecting potential memory leaks
-  // All objects should be deleted and generated from scratch when a new level is reached
+  // All objects should be deleted and generated from scratch when a new level
+  // is reached
   if (map->numObjects + 1 > MAX_OBJECTS) {
     fprintf(stderr, "Failed to add game object; maximum reached\n");
     return;
@@ -64,14 +65,19 @@ void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
   int cellY = map->posY + obj->posY * CELL_HEIGHT;
 
   // Draw the object in the new position
+  /*
   drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
             obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
+  */
+  drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
+                 obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
 }
 
 // Updates the location of the object in the object map
-void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX, int posY) {
+void setGameObjectPos(struct GameMap* map, struct GameObject* obj, int posX,
+                      int posY) {
   eraseGameMapObject(map, obj);
-  
+
   map->objectMap[obj->posY][obj->posX] = -1;
   obj->posX = posX;
   obj->posY = posY;
@@ -113,6 +119,7 @@ void printObjectMap(struct GameMap* map) {
   printf("\n\n");
 }
 
+/*
 void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
   int cellX = map->posX + obj->posX * CELL_WIDTH;
   int cellY = map->posY + obj->posY * CELL_HEIGHT;
@@ -126,6 +133,7 @@ void drawAnimatedGameObject(struct GameMap* map, struct GameObject* obj) {
   drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->animationFrame, 0,
                  map->backgroundMap[obj->posY][obj->posX]);
 }
+*/
 
 void drawInitialGameMap(struct GameMap* map) {
   int cellX;
@@ -150,14 +158,18 @@ void drawInitialGameMap(struct GameMap* map) {
   for (int i = 0; i < map->numObjects; i++) {
     obj = map->objects[i];
 
-    if (obj->spriteSheet == NULL) {
-      cellX = map->posX + obj->posX * CELL_WIDTH;
-      cellY = map->posY + obj->posY * CELL_HEIGHT;
+    // if (obj->spriteSheet == NULL) {
+    cellX = map->posX + obj->posX * CELL_WIDTH;
+    cellY = map->posY + obj->posY * CELL_HEIGHT;
 
-      drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-                obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
-    } else {
-      drawAnimatedGameObject(map, obj);
-    }
+    /*
+    drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
+              obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
+    */
+    drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
+                   obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
+    //} else {
+    // drawAnimatedGameObject(map, obj);
+    //}
   }
 }

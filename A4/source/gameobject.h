@@ -1,4 +1,4 @@
-typedef enum { MV_UP, MV_DOWN, MV_RIGHT, MV_LEFT } Direction;
+typedef enum { MV_UP, MV_RIGHT, MV_DOWN, MV_LEFT } Direction;
 
 struct GameObject {
   int id;
@@ -10,22 +10,23 @@ struct GameObject {
   int posX;
   int posY;
 
-  short* sprite;
-  int spriteBgColor;
+  short* sprite;      // temp
+  int spriteBgColor;  // temp
   Direction dir;
 
-  int speed;
+  struct SpriteSheet* spriteSheet;
+  int spriteTileX;
+  int spriteTileY;
+
+  int speed;             // unused
   float lastUpdateTime;  // Measured in milliseconds
   float updateInterval;
-
-  struct SpriteSheet* spriteSheet;
-  int animationFrame;
 };
 
 struct AnimatedEntity {
-
+  int animationFrame;
 };
 
 void initGameObject(struct GameObject* obj, int posX, int posY, int id,
-                    short* sprite, int spriteBgColor, Direction dir, int speed);
-
+                       struct SpriteSheet* sheet, int spriteTileX,
+                       int spriteTileY, Direction dir, int speed);

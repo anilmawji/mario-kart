@@ -6,5 +6,7 @@ typedef enum {
   BLUE = 0x00ff,
   GREY = 0x7bef,
   GREEN = 0x5e05,
-  YELLOW = 0xffe0
-} Color;
+  YELLOW = 0xffe0,
+  SPRITE_BG_COLOR = 18376
+}
+Color;

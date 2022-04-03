@@ -99,6 +99,8 @@ void drawImage(short int* pixelData, int posX, int posY, int width, int height,
       pixel->x = posX + x;
       pixel->y = posY + y;
 
+      //sprintf("%d\n", pixelData[i]);
+
       drawPixel(pixel);
       i++;
     }

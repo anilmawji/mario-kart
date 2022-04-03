@@ -32,11 +32,12 @@
 #include "objectassets.h"
 #include "plants.h"
 #include "renderer.h"
+#include "spritesheet.h"
 #include "timer.h"
 #include "utils.h"
 
 #define BUFFER_SIZE 20
-#define SCORE_CONST 20
+#define SCORE_CONST 12
 #define PLAYER_DEFAULT_SPEED 1.2
 #define PLAYER_START_X 1
 #define PLAYER_START_Y (MAP_HEIGHT / 2 - 1)
@@ -45,6 +46,7 @@
 #define MAX_POWERUPS 8
 #define SPEED_POWERUP (PLAYER_DEFAULT_SPEED * 2)
 #define TIME_POWERUP 30
+#define POWERUP_SPAWN_TIME 1
 
 enum ObjectTypes { PLAYER, MOVING_OBSTACLE, STATIC_OBSTACLE, POWERUP };
 
@@ -81,14 +83,7 @@ char textBuffer[BUFFER_SIZE];
 short* menuBackground = (short*)menu_background.pixel_data;
 short* menuTitle = (short*)menu_title.pixel_data;
 
-short* marioSprites[] = {
-    (short*)mario_up.pixel_data, (short*)mario_down.pixel_data,
-    (short*)mario_right.pixel_data, (short*)mario_left.pixel_data};
-
-short* bowserSprite = (short*)bowser_down.pixel_data;
-short* powerupSprite = (short*)powerup.pixel_data;
-
-struct SpriteSheet plantSprites;
+struct SpriteSheet gameSprites;
 
 void runGameLoop();
 void resetGameState();
@@ -114,8 +109,7 @@ void addMovingObstacle(struct GameObject* obj, int x) {
     state.gameMap.backgroundMap[y][x] = GREY;
   }
 
-  initGameObject(obj, x, 0, MOVING_OBSTACLE, bowserSprite, TRANSPARENT, MV_DOWN,
-                 1.5);
+  initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSprites, 0, 1, MV_DOWN, 2);
   addGameObject(&state.gameMap, obj);
 
   obj->updateInterval = 0.05 + (rand() % 3) * 0.1;
@@ -160,18 +154,18 @@ void generateRandomMap() {
         if (objType <= 3) {
           obj = &state.staticObstacles[numStatic];
 
-          initGameObject(obj, x, y, STATIC_OBSTACLE, (short*)plant.pixel_data,
-                         WHITE, MV_DOWN, 0);
+          initGameObject(obj, x, y, STATIC_OBSTACLE, &gameSprites, 6, 0, MV_UP,
+                         2);
           addGameObject(&state.gameMap, obj);
 
-          obj->spriteSheet = &plantSprites;
           obj->updateInterval = 0.4 + (rand() % 4) * 0.1;
 
           numStatic++;
         } else if (objType <= 4 && prevX != x && x >= 3 &&
                    numPowerups < MAX_POWERUPS) {
-          initGameObject(&state.powerups[numPowerups], x, y, POWERUP,
-                         powerupSprite, WHITE, MV_DOWN, 0);
+          obj = &state.powerups[numPowerups];
+
+          initGameObject(obj, x, y, POWERUP, &gameSprites, 2, 3, MV_UP, 2);
 
           numPowerups++;
           prevX = x;
@@ -247,6 +241,7 @@ void updateMovingObstacles() {
   }
 }
 
+/*
 void updateStaticObstacles() {
   struct GameObject* obj;
 
@@ -260,14 +255,15 @@ void updateStaticObstacles() {
     }
   }
 }
+*/
 
 void activatePowerup() {
   // Pick random powerup
-  int powerup = rand() % 10;
+  int type = rand() % 10;
 
-  if (powerup <= 3) {
+  if (type <= 3) {
     state.lives++;
-  } else if (powerup <= 6) {
+  } else if (type <= 6) {
     state.timeLeft.secondsAllowed += TIME_POWERUP;
   } else {
     setPlayerSpeed(SPEED_POWERUP);
@@ -308,7 +304,6 @@ void updatePlayer() {
         state.gameMap.objectMap[newY][newX] = -1;
         activatePowerup();
       }
-      player.sprite = marioSprites[player.dir];
       setGameObjectPos(&state.gameMap, &player, newX, newY);
       drawGameMapObject(&state.gameMap, &player);
     }
@@ -337,7 +332,7 @@ void drawGuiLabels() {
   drawText("time ", 5, MAP_WIDTH * CELL_WIDTH, viewportY, 0);
 }
 
-void resetGameState() {//unsaved change
+void resetGameState() {
   // Remove all obstacles and powerups
   memset(&state.movingObstacles, 0, sizeof(state.movingObstacles));
   memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
@@ -388,12 +383,12 @@ void runGameLoop() {
   int score;
 
   while (!state.win && !state.lose) {
-    //double start = clock(); //rough performance test
-    // printGameMap(&state.gameMap);
+    // double start = clock(); //rough performance test
+    //  printGameMap(&state.gameMap);
     readSNES();
     updatePlayer();
     updateMovingObstacles();
-    updateStaticObstacles();
+    // updateStaticObstacles();
     score = calculateScore();
     drawGuiValues(score);
 
@@ -408,7 +403,8 @@ void runGameLoop() {
 
     // Add value packs to the map 10 seconds after the game starts
     if (!state.powerupsAdded &&
-        (double)(clock() - state.levelStartTime) / CLOCKS_PER_SEC >= 10) {
+        (double)(clock() - state.levelStartTime) / CLOCKS_PER_SEC >=
+            POWERUP_SPAWN_TIME) {
       for (int i = 0; i < state.numPowerups; i++) {
         addGameObject(&state.gameMap, &state.powerups[i]);
         drawGameMapObject(&state.gameMap, &state.powerups[i]);
@@ -442,8 +438,8 @@ void runGameLoop() {
     } else if (checkLoss()) {
       state.lose = TRUE;
     }
-    //double dur = clock() - start;
-    //printf("%.4f\n", dur / CLOCKS_PER_SEC);
+    // double dur = clock() - start;
+    // printf("%.4f\n", dur / CLOCKS_PER_SEC);
   }
   endGame(score);
 }
@@ -503,24 +499,26 @@ void viewGameMenu() {
 void initGame() {
   initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT);
 
-  // Init main menu buttons
+  // Init main menu
   initMenu(&mainMenu);
   addMenuButton(&mainMenu, "start", &startGame);
   addMenuButton(&mainMenu, "quit", &quitGame);
   mainMenu.posY = viewportY + 350;
 
-  // Init game menu buttons
+  // Init game menu
   initMenu(&gameMenu);
   addMenuButton(&gameMenu, "restart", &startGame);
   addMenuButton(&gameMenu, "quit", &viewMainMenu);
 
-  // Init player
-  initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
-                 marioSprites[MV_RIGHT], TRANSPARENT, MV_RIGHT, 1.5);
-  addGameObject(&state.gameMap, &player);
+  // Init game sprites
+  initSpriteSheet(&gameSprites, (short*)sprite_sheet.pixel_data,
+                  sprite_sheet.width, sprite_sheet.height, 3, 8, 32, 32, 4, 4,
+                  SPRITE_BG_COLOR);
 
-  initSpriteSheet(&plantSprites, (short*)plant.pixel_data, plant.width,
-                  plant.height, 1, 2, 32, 32, 6, 5, WHITE);
+  // Init player
+  initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER, &gameSprites,
+                 0, 0, MV_RIGHT, 2);
+  addGameObject(&state.gameMap, &player);
 
   // If the size of the screen isn't perfectly divisible by the cell height,
   // move the map down by the extra space
