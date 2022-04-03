@@ -59,16 +59,11 @@ void eraseGameMapObject(struct GameMap* map, struct GameObject* obj) {
                map->backgroundMap[obj->posY][obj->posX]);
 }
 
-// TODO: Split into 2 functions, erase and draw
 void drawGameMapObject(struct GameMap* map, struct GameObject* obj) {
   int cellX = map->posX + obj->posX * CELL_WIDTH;
   int cellY = map->posY + obj->posY * CELL_HEIGHT;
 
   // Draw the object in the new position
-  /*
-  drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-            obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
-  */
   drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
                  obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
 }
@@ -158,18 +153,10 @@ void drawInitialGameMap(struct GameMap* map) {
   for (int i = 0; i < map->numObjects; i++) {
     obj = map->objects[i];
 
-    // if (obj->spriteSheet == NULL) {
     cellX = map->posX + obj->posX * CELL_WIDTH;
     cellY = map->posY + obj->posY * CELL_HEIGHT;
 
-    /*
-    drawImage(obj->sprite, cellX, cellY, CELL_WIDTH, CELL_HEIGHT,
-              obj->spriteBgColor, map->backgroundMap[obj->posY][obj->posX]);
-    */
     drawSpriteTile(obj->spriteSheet, cellX, cellY, obj->spriteTileX + obj->dir,
                    obj->spriteTileY, map->backgroundMap[obj->posY][obj->posX]);
-    //} else {
-    // drawAnimatedGameObject(map, obj);
-    //}
   }
 }
