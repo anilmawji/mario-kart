@@ -35,6 +35,36 @@ void drawPixel(Pixel* pixel) {
 
 void clearScreen() { memset(fbinfo.fbptr, 0, fbinfo.screenSizeBytes); }
 
+// Full credit goes to
+// https://stackoverflow.com/questions/58449462/rgb565-to-grayscale
+int16_t greyscale(int color) {
+  int16_t red = ((color & 0xF800) >> 11);
+  int16_t green = ((color & 0x07E0) >> 5);
+  int16_t blue = (color & 0x001F);
+  int16_t grayscale = (0.2126 * red) + (0.7152 * green / 2.0) + (0.0722 * blue);
+
+  return (grayscale << 11) + (grayscale << 6) + grayscale;
+}
+
+short* generateGreyscaleImage(short* pixelData, int width, int height) {
+  int i = 0;
+  int len = width * height;
+  short* newPixelData = malloc(len * sizeof(short));
+
+  if (newPixelData == NULL) {
+    printf("Error: Call to malloc failed\n");
+  }
+  memcpy(newPixelData, pixelData, len * sizeof(short));
+
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      newPixelData[i] = greyscale(pixelData[i]);
+      i++;
+    }
+  }
+  return newPixelData;
+}
+
 // Filled rectangle
 void drawFillRect(int posX, int posY, int width, int height, int bgcolor) {
   pixel->color = bgcolor;

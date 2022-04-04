@@ -33,12 +33,7 @@
 #include "utils.h"
 
 #define BUFFER_SIZE 20
-#define SCORE_CONST 1
-
-// Tile ids correspond to their location in the spritesheet
-// For a tile with an id of k, the tile must be the kth tile in the spritesheet
-#define GRASS_TILE_ID 16
-#define ROAD_TILE_ID 17
+#define SCORE_CONST 10
 
 #define PLAYER_DEFAULT_SPEED 1.2
 #define PLAYER_START_X 1
@@ -52,10 +47,20 @@
 #define POWERUP_TIME_ADDED 30
 #define POWERUP_SPAWN_TIME 10
 
+// Tile ids correspond to their location in the spritesheet
+// For a tile with an id of k, the tile must be the kth tile in the spritesheet
+enum TILE_IDS {
+  GRASS = 22,
+  ROAD = 23,
+  FINISH_LINE = 34,
+  PLANT_BIG = 31,
+  PLANT_SMALL = 32
+};
+
 // Values must be at least as large as the number of tiles in the spritesheet
 // to avoid coflicting with background tile ids
 // Beyond that, the values are arbitrary
-enum ObjectTypes {
+enum OBJECT_IDS {
   PLAYER = 111,
   MOVING_OBSTACLE = 222,
   STATIC_OBSTACLE = 333,
@@ -94,8 +99,10 @@ char textBuffer[BUFFER_SIZE];
 
 short* menuBackground = (short*)menu_background.pixel_data;
 short* menuTitle = (short*)menu_title.pixel_data;
+short* gameSprites = (short*)game_sprites.pixel_data;
+short* gameSpritesGreyscale;
 
-struct SpriteSheet gameSprites;
+struct SpriteSheet gameSpriteSheet;
 
 void runGameLoop();
 void resetGameState();
@@ -118,15 +125,16 @@ int checkLevelWin() { return player.posX >= MAP_WIDTH - 1; }
 void addMovingObstacle(struct GameObject* obj, int x) {
   // Draw road
   for (int y = 0; y < MAP_HEIGHT; y++) {
-    state.gameMap.backgroundMap[y][x] = ROAD_TILE_ID;
+    state.gameMap.backgroundMap[y][x] = ROAD;
   }
 
   // Pick random move direction (up or down)
   if (rand() % 2 == 0) {
-    initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSprites, 0, 1, MV_DOWN, 2);
+    initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSpriteSheet, 0, 1, MV_DOWN,
+                   2);
   } else {
-    initGameObject(obj, x, MAP_HEIGHT - 1, MOVING_OBSTACLE, &gameSprites, 0, 1,
-                   MV_UP, 2);
+    initGameObject(obj, x, MAP_HEIGHT - 1, MOVING_OBSTACLE, &gameSpriteSheet, 0,
+                   1, MV_UP, 2);
   }
   addGameObject(&state.gameMap, obj);
 
@@ -134,17 +142,20 @@ void addMovingObstacle(struct GameObject* obj, int x) {
   obj->lastUpdateTime = clock();
 }
 
-void addFinishLine() {
-  int black = TRUE;
+void generateInitialGameMap() {
+  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GRASS);
 
-  for (int x = MAP_WIDTH - 2; x < MAP_WIDTH; x++) {
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-      if (black) {
-        state.gameMap.backgroundMap[y][x] = BLACK;
-        black = FALSE;
-      } else {
-        state.gameMap.backgroundMap[y][x] = WHITE;
-        black = TRUE;
+  int bgType;
+
+  // Add some plants to the map to make it pretty
+  for (int y = 0; y < MAP_HEIGHT; y++) {
+    for (int x = 0; x < MAP_WIDTH; x++) {
+      bgType = rand() % 12;
+
+      if (bgType <= 2) {
+        state.gameMap.backgroundMap[y][x] = PLANT_BIG;
+      } else if (bgType == 3) {
+        state.gameMap.backgroundMap[y][x] = PLANT_SMALL;
       }
     }
   }
@@ -172,8 +183,8 @@ void generateRandomMap() {
         if (objType <= 3) {
           obj = &state.staticObstacles[numStatic];
 
-          initGameObject(obj, x, y, STATIC_OBSTACLE, &gameSprites, 6, 0, MV_UP,
-                         2);
+          initGameObject(obj, x, y, STATIC_OBSTACLE, &gameSpriteSheet, 6, 0,
+                         MV_UP, 2);
           addGameObject(&state.gameMap, obj);
 
           obj->updateInterval = 0.4 + (rand() % 4) * 0.1;
@@ -183,7 +194,7 @@ void generateRandomMap() {
                    numPowerups < MAX_POWERUPS) {
           obj = &state.powerups[numPowerups];
 
-          initGameObject(obj, x, y, POWERUP, &gameSprites, 2, 3, MV_UP, 2);
+          initGameObject(obj, x, y, POWERUP, &gameSpriteSheet, 6, 3, MV_UP, 2);
 
           numPowerups++;
           prevX = x;
@@ -195,7 +206,12 @@ void generateRandomMap() {
   state.numStatic = numStatic;
   state.numPowerups = numPowerups;
 
-  addFinishLine();
+  // Add finish line
+  for (int x = MAP_WIDTH - 2; x < MAP_WIDTH - 1; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+      state.gameMap.backgroundMap[y][x] = FINISH_LINE;
+    }
+  }
 }
 
 void respawnPlayer() {
@@ -373,7 +389,7 @@ void resetGameState() {
   memset(&state.staticObstacles, 0, sizeof(state.staticObstacles));
   memset(&state.powerups, 0, sizeof(state.powerups));
 
-  clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GRASS_TILE_ID);
+  generateInitialGameMap();
 
   // Set fields to defaults
   state.lives = 4;
@@ -397,10 +413,31 @@ void drawGameFinishedScreen(char* text, int length, int finalScore) {
            viewportY + (VIEWPORT_HEIGHT + CELL_HEIGHT) / 2, BLACK);
 }
 
+void useGreyscaleFilter() {
+  state.gameMap.spriteSheet->pixelData = gameSpritesGreyscale;
+
+  for (int i = 0; i < state.gameMap.numObjects; i++) {
+    state.gameMap.objects[i]->spriteSheet->pixelData = gameSpritesGreyscale;
+  }
+}
+
+void removeFilter() {
+  state.gameMap.spriteSheet->pixelData = gameSprites;
+
+  for (int i = 0; i < state.gameMap.numObjects; i++) {
+    state.gameMap.objects[i]->spriteSheet->pixelData = gameSprites;
+  }
+}
+
 void endGame(int finalScore) {
   if (state.win) {
     drawGameFinishedScreen("you win", 7, finalScore);
   } else if (state.lose) {
+    useGreyscaleFilter();
+    //Redraw make to reflect filter changes
+    drawInitialGameMap(&state.gameMap);
+    drawGameMapObject(&state.gameMap, &player);
+
     drawGameFinishedScreen("game over", 9, finalScore);
   }
   // Give player enough time to see results before registering button presses
@@ -412,6 +449,7 @@ void endGame(int finalScore) {
 }
 
 void runGameLoop() {
+  removeFilter();
   drawInitialGameMap(&state.gameMap);
   drawGameMapObject(&state.gameMap, &player);
 
@@ -459,7 +497,7 @@ void runGameLoop() {
       } else {
         state.currentLevel++;
 
-        clearGameMap(&state.gameMap, MAP_WIDTH, MAP_HEIGHT, GRASS_TILE_ID);
+        generateInitialGameMap();
         generateRandomMap();
         drawInitialGameMap(&state.gameMap);
 
@@ -532,7 +570,8 @@ void viewGameMenu() {
 }
 
 void initGame() {
-  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT, &gameSprites);
+  initGameMap(&state.gameMap, viewportX, viewportY + CELL_HEIGHT,
+              &gameSpriteSheet);
 
   // Init main menu
   initMenu(&mainMenu);
@@ -546,14 +585,17 @@ void initGame() {
   addMenuButton(&gameMenu, "quit", &viewMainMenu);
 
   // Init game sprites
-  initSpriteSheet(&gameSprites, (short*)sprite_sheet.pixel_data,
-                  sprite_sheet.width, sprite_sheet.height, 3, 8, 32, 32, 4, 4,
-                  SPRITE_BG_COLOR);
+  initSpriteSheet(&gameSpriteSheet, gameSprites, game_sprites.width,
+                  game_sprites.height, 7, 9, 32, 32, 4, 4, SPRITE_BG_COLOR);
 
   // Init player
-  initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER, &gameSprites,
-                 0, 0, MV_RIGHT, 2);
+  initGameObject(&player, PLAYER_START_X, PLAYER_START_Y, PLAYER,
+                 &gameSpriteSheet, 0, 0, MV_RIGHT, 2);
   addGameObject(&state.gameMap, &player);
+
+  // Init greyscale filter
+  gameSpritesGreyscale = generateGreyscaleImage(
+      gameSprites, game_sprites.width, game_sprites.height);
 
   // If the size of the screen isn't perfectly divisible by the cell height,
   // move the map down by the extra space

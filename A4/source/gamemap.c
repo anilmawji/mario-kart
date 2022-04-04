@@ -21,10 +21,10 @@ void initGameMap(struct GameMap* map, int posX, int posY,
   map->numObjects = 0;
 }
 
-void clearGameMap(struct GameMap* map, int maxX, int maxY, int bgColor) {
+void clearGameMap(struct GameMap* map, int maxX, int maxY, int tileId) {
   for (int y = 0; y < maxY; y++) {
     for (int x = 0; x < maxX; x++) {
-      map->backgroundMap[y][x] = bgColor;
+      map->backgroundMap[y][x] = tileId;
       map->objectMap[y][x] = NO_OBJECT;
     }
   }
