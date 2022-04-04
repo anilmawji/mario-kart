@@ -128,13 +128,16 @@ void addMovingObstacle(struct GameObject* obj, int x) {
     state.gameMap.backgroundMap[y][x] = ROAD;
   }
 
+  //Select random tile row to get a random kart sprite
+  int character = 1 + rand() % (gameSpriteSheet.rows - 1);
+
   // Pick random move direction (up or down)
   if (rand() % 2 == 0) {
-    initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSpriteSheet, 0, 1, MV_DOWN,
-                   2);
+    initGameObject(obj, x, 0, MOVING_OBSTACLE, &gameSpriteSheet, 0, character,
+                   MV_DOWN, 2);
   } else {
     initGameObject(obj, x, MAP_HEIGHT - 1, MOVING_OBSTACLE, &gameSpriteSheet, 0,
-                   1, MV_UP, 2);
+                   character, MV_UP, 2);
   }
   addGameObject(&state.gameMap, obj);
 
@@ -183,7 +186,7 @@ void generateRandomMap() {
         if (objType <= 3) {
           obj = &state.staticObstacles[numStatic];
 
-          initGameObject(obj, x, y, STATIC_OBSTACLE, &gameSpriteSheet, 6, 0,
+          initGameObject(obj, x, y, STATIC_OBSTACLE, &gameSpriteSheet, 5, 4,
                          MV_UP, 2);
           addGameObject(&state.gameMap, obj);
 
@@ -247,6 +250,8 @@ int updateGameObject(struct GameObject* obj) {
     // Only update object position if it changed
     if (newX != obj->posX || newY != obj->posY) {
       if (obj->dir == MV_DOWN && newY > MAP_HEIGHT - 1) {
+        // Random chance of switching character
+        obj->spriteTileY = 1 + rand() % (gameSpriteSheet.rows - 1);
         // Pick random moving object speed
         obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
         if (rand() % 2 == 0) {
@@ -258,6 +263,8 @@ int updateGameObject(struct GameObject* obj) {
           setGameObjectPos(&state.gameMap, obj, obj->posX, MAP_HEIGHT - 1);
         }
       } else if (obj->dir == MV_UP && newY < 0) {
+        // Random chance of switching character
+        obj->spriteTileY = 1 + rand() % (gameSpriteSheet.rows - 1);
         // Pick random moving object speed
         obj->updateInterval = 0.1 + (rand() % 3) * 0.1;
         if (rand() % 2 == 0) {
@@ -434,7 +441,7 @@ void endGame(int finalScore) {
     drawGameFinishedScreen("you win", 7, finalScore);
   } else if (state.lose) {
     useGreyscaleFilter();
-    //Redraw make to reflect filter changes
+    // Redraw make to reflect filter changes
     drawInitialGameMap(&state.gameMap);
     drawGameMapObject(&state.gameMap, &player);
 
@@ -552,6 +559,10 @@ void viewMainMenu() {
 }
 
 void viewGameMenu() {
+  useGreyscaleFilter();
+  drawInitialGameMap(&state.gameMap);
+  drawGameMapObject(&state.gameMap, &player);
+
   // Draw buttons
   gameMenu.selectedButton = 0;
   drawInitialMenu(&gameMenu, TRUE);
