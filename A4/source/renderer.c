@@ -46,7 +46,9 @@ int16_t greyscale(int color) {
   return (grayscale << 11) + (grayscale << 6) + grayscale;
 }
 
-short* generateGreyscaleImage(short* pixelData, int width, int height) {
+// Convert pixel data to greyscale pixels
+// Pixels with bgColor are ommitted from conversion
+short* generateGreyscaleImage(short* pixelData, int width, int height, int bgColor) {
   int i = 0;
   int len = width * height;
   short* newPixelData = malloc(len * sizeof(short));
@@ -58,7 +60,9 @@ short* generateGreyscaleImage(short* pixelData, int width, int height) {
 
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      newPixelData[i] = greyscale(pixelData[i]);
+      if (pixelData[i] != bgColor) {
+        newPixelData[i] = greyscale(pixelData[i]);
+      }
       i++;
     }
   }

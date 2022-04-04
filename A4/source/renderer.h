@@ -29,7 +29,8 @@ void drawStrokeRect(int posX, int posY, int width, int height, int strokeSize,
 void drawFillRectWithStroke(int posX, int posY, int width, int height,
                             int bgColor, int strokeSize, int strokeColor);
 
-short *generateGreyscaleImage(short *pixelData, int width, int height);
+short *generateGreyscaleImage(short *pixelData, int width, int height,
+                              int bgColor);
 
 void drawOverlayedCroppedImages(short *pixelData, int posX, int posY,
                                 int origWidth, int startX, int startY,

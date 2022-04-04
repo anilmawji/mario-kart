@@ -595,7 +595,7 @@ void initGame() {
 
   // Init greyscale filter
   gameSpritesGreyscale = generateGreyscaleImage(
-      gameSprites, game_sprites.width, game_sprites.height);
+      gameSprites, game_sprites.width, game_sprites.height, SPRITE_BG_COLOR);
 
   // If the size of the screen isn't perfectly divisible by the cell height,
   // move the map down by the extra space
